@@ -1,0 +1,28 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "cc-plugins",
+  "description": "Personal Claude Code plugin marketplace for TU. Claude Code ports of the plugins maintained in the codex-plugins marketplace.",
+  "owner": {
+    "name": "TU"
+  },
+  "plugins": [
+    {
+      "name": "dev-env",
+      "description": "Keep a personal Ubuntu WSL development environment organized by clear tool ownership and canonical paths.",
+      "author": {
+        "name": "TU"
+      },
+      "category": "development",
+      "source": "./plugins/dev-env"
+    },
+    {
+      "name": "engineering-governance",
+      "description": "Establish a durable context architecture for workspaces, projects, documentation, status, and temporary plans.",
+      "author": {
+        "name": "TU"
+      },
+      "category": "development",
+      "source": "./plugins/engineering-governance"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "dev-env",
+  "version": "0.1.1",
+  "description": "Keep a personal Ubuntu WSL development environment organized by clear tool ownership and canonical paths.",
+  "author": {
+    "name": "TU"
+  },
+  "license": "MIT",
+  "keywords": [
+    "wsl",
+    "environment",
+    "package-management",
+    "path"
+  ]
+}
