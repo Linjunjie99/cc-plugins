@@ -1,0 +1,21 @@
+version = 1
+timezone = "Asia/Shanghai"
+
+[paths]
+company_root = "/root/workspace/10_company"
+documents_root = "/root/workspace/10_company/documents"
+reports_root = "/root/workspace/10_company/reporting"
+
+[documents.target]
+workspace_id = ""
+folder_id = ""
+
+[reports]
+require_confirmation = true
+to_chat = false
+[reports.recipients]
+common = []
+daily = []
+weekly = []
+monthly = []
+annual = []

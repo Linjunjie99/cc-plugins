@@ -15,8 +15,10 @@ rather than emulating the other.
 - `engineering-governance`: establishes a durable context architecture for
   workspace navigation, project instructions, current status, active plans,
   and long-lived documentation.
+- `dingtalk`: manages DingTalk contacts, online documents, and confirmed
+  work-report publishing from local Markdown through one wrapped MCP server.
 
-Not ported: `slides` and `dingtalk` remain Codex-only for now.
+Not ported: `slides` remains Codex-only for now.
 
 ## Install
 
@@ -26,7 +28,11 @@ Register the marketplace and install the plugins:
 claude plugin marketplace add /root/workspace/20_personal/projects/cc-plugins
 claude plugin install dev-env@cc-plugins
 claude plugin install engineering-governance@cc-plugins
+claude plugin install dingtalk@cc-plugins
 ```
+
+`dingtalk` additionally needs the three `DINGTALK_*_MCP_URL` environment
+variables; see [plugins/dingtalk/README.md](plugins/dingtalk/README.md).
 
 From the published GitHub repository instead:
 
@@ -34,6 +40,7 @@ From the published GitHub repository instead:
 claude plugin marketplace add git@github.com:Linjunjie99/cc-plugins.git
 claude plugin install dev-env@cc-plugins
 claude plugin install engineering-governance@cc-plugins
+claude plugin install dingtalk@cc-plugins
 ```
 
 To receive a later release:
@@ -61,6 +68,7 @@ What does need a decision is the context files the plugins write:
 | Global guidance | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` | Each harness owns its own file. Both may carry an `engineering-governance` managed section. Neither skill writes the other's file. |
 | Project context | `CLAUDE.md` | `AGENTS.md` | One canonical file per repository. The other is a bridge that imports it. |
 | Active plans | `.claude/plans/` | `.codex/plans/` | Declare one directory per repository in the canonical context file. |
+| DingTalk config | `~/.claude/dingtalk.toml` | `~/.codex/dingtalk.toml` | Each harness owns its own file. The first Claude Code setup imports the Codex file read-only. Gateway URL variables and the documents/reports directories are shared. |
 
 `engineering-governance` implements this. In a repository that already has
 `AGENTS.md`, its `maintain-project-context` skill keeps `AGENTS.md` canonical
@@ -87,6 +95,12 @@ CLAUDE.md
 DEVELOPMENT.md
 plugins/dev-env/.claude-plugin/plugin.json
 plugins/dev-env/skills/dev-env/SKILL.md
+plugins/dingtalk/.claude-plugin/plugin.json
+plugins/dingtalk/.mcp.json
+plugins/dingtalk/dist/
+plugins/dingtalk/skills/dingtalk-{setup,contacts,documents,reports}/
+plugins/dingtalk/src/
+plugins/dingtalk/test/
 plugins/engineering-governance/.claude-plugin/plugin.json
 plugins/engineering-governance/skills/configure-global-guidance/
 plugins/engineering-governance/skills/maintain-project-context/

@@ -81,6 +81,20 @@ python3 -m unittest discover -s tests -v
 cd ../..
 ```
 
+For `plugins/dingtalk`, which runs from a bundled `dist/`:
+
+```bash
+cd plugins/dingtalk
+npm ci
+npm test
+npm run build
+npm run check
+cd ../..
+```
+
+Commit the rebuilt `dist/` with any `src/` or `scripts/` change. Never commit
+`node_modules/`.
+
 When the installed plugin must be refreshed for integration testing:
 
 ```bash

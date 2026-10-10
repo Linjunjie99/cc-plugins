@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "dingtalk": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/server.cjs"],
+      "env": {
+        "DINGTALK_CONTACTS_MCP_URL": "${DINGTALK_CONTACTS_MCP_URL:-}",
+        "DINGTALK_DOCS_MCP_URL": "${DINGTALK_DOCS_MCP_URL:-}",
+        "DINGTALK_LOG_MCP_URL": "${DINGTALK_LOG_MCP_URL:-}"
+      }
+    }
+  }
+}

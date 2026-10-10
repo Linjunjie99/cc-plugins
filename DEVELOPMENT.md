@@ -73,6 +73,18 @@ python3 -m unittest discover -s tests -v
 cd ../..
 ```
 
+For `plugins/dingtalk`, install dependencies, test, and rebuild the committed
+bundle. The installed plugin runs `dist/`, not `src/`:
+
+```bash
+cd plugins/dingtalk
+npm ci
+npm test
+npm run build
+npm run check
+cd ../..
+```
+
 Inspect what a plugin actually contributes and what it costs in context:
 
 ```bash
@@ -137,7 +149,9 @@ the running session. Therefore:
    | `codex plugin ...` | `claude plugin ...` |
 
 4. Convert `.mcp.json` from Codex's `env_vars` array to Claude Code's `env`
-   object.
+   object, using `"${VAR:-}"` so a missing variable reaches the server as empty
+   instead of failing config parsing. Replace relative server paths and `cwd`
+   with `${CLAUDE_PLUGIN_ROOT}`.
 5. Where the skill writes shared, on-disk state that the Codex plugin also
    writes, add explicit coexistence rules rather than letting both harnesses
    own the same file. See the multi-harness sections in
@@ -166,6 +180,7 @@ Release checks:
 claude plugin validate .
 claude plugin validate plugins/<plugin-name>
 cd plugins/engineering-governance && python3 -m unittest discover -s tests && cd ../..
+cd plugins/dingtalk && npm test && npm run build && npm run check && cd ../..
 git diff --check
 git status --short
 git diff --cached

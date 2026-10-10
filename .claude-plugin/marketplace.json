@@ -23,6 +23,15 @@
       },
       "category": "development",
       "source": "./plugins/engineering-governance"
+    },
+    {
+      "name": "dingtalk",
+      "description": "Manage DingTalk contacts, online documents, and confirmed work-report publishing from local Markdown.",
+      "author": {
+        "name": "TU"
+      },
+      "category": "productivity",
+      "source": "./plugins/dingtalk"
     }
   ]
 }

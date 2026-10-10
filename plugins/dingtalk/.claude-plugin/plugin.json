@@ -1,0 +1,15 @@
+{
+  "name": "dingtalk",
+  "version": "0.1.0",
+  "description": "File-first DingTalk contacts, document, and work-report workflows for Claude Code.",
+  "author": {
+    "name": "TU"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dingtalk",
+    "documents",
+    "work-reports",
+    "mcp"
+  ]
+}
