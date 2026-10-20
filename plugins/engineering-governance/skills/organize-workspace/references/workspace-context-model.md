@@ -28,14 +28,11 @@ This is a semantic model. Existing names such as `10_company`, `20_personal`,
 
 ## Workspace Context Document
 
-Create a workspace-level `CLAUDE.md` only when several repositories share
+Create a workspace-level `AGENTS.md` only when several repositories share
 stable navigation or ownership context. It may name the scopes, project roots,
 shared tooling, and storage boundaries. It does not restate rules or status
-owned by individual repositories.
-
-When the workspace is also used with another agent CLI, one workspace context
-file stays canonical and the other harness's entry point imports it. Do not
-maintain two workspace maps.
+owned by individual repositories. A workspace-level `CLAUDE.md`, when needed,
+only imports it with `@AGENTS.md`, so the workspace has one map.
 
 ## Evaluation Questions
 

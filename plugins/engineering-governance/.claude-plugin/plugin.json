@@ -1,6 +1,6 @@
 {
   "name": "engineering-governance",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Establish a durable context architecture for workspaces, projects, documentation, status, and temporary plans.",
   "author": {
     "name": "TU"

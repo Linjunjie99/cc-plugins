@@ -69,14 +69,14 @@ What does need a decision is the context files the plugins write:
 | Concern | Claude Code | Codex | Rule |
 | --- | --- | --- | --- |
 | Global guidance | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` | Each harness owns its own file. Both may carry an `engineering-governance` managed section. Neither skill writes the other's file. |
-| Project context | `CLAUDE.md` | `AGENTS.md` | One canonical file per repository. The other is a bridge that imports it. |
-| Active plans | `.claude/plans/` | `.codex/plans/` | Declare one directory per repository in the canonical context file. |
+| Project context | `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` holds all shared facts. `CLAUDE.md` is `@AGENTS.md` plus optional Claude Code notes. |
+| Active plans | `.claude/plans` | `.codex/plans` | Both are symlinks to `.agents/plans/`. |
 | DingTalk config | `~/.claude/dingtalk.toml` | `~/.codex/dingtalk.toml` | Each harness owns its own file. The first Claude Code setup imports the Codex file read-only. Gateway URL variables and the documents/reports directories are shared. |
 
-`engineering-governance` implements this. In a repository that already has
-`AGENTS.md`, its `maintain-project-context` skill keeps `AGENTS.md` canonical
-and makes `CLAUDE.md` a one-line bridge (`@AGENTS.md`), so project facts have
-exactly one owner and cannot drift between harnesses.
+`engineering-governance` implements this. Its `maintain-project-context` skill
+keeps project facts in `AGENTS.md`, reduces `CLAUDE.md` to an import, and
+points both harness plan paths at `.agents/plans/`, so project facts have
+exactly one owner and plans need no synchronization.
 
 ## Develop Plugins Locally
 

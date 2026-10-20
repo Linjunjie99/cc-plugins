@@ -1,6 +1,9 @@
 ---
 name: maintain-project-context
-description: Establish, audit, or simplify a repository's persistent context and documentation architecture. Use for new project setup, CLAUDE.md design, project-status creation, documentation indexing, multi-stage plan management, project handoff, documentation cleanup, repository restructuring, bridging a repository that is also used with another agent CLI such as AGENTS.md, or when Claude repeatedly has to rediscover the same project background and current state.
+description: Establish, audit, or simplify a repository's persistent context and documentation architecture. Use for new project setup, AGENTS.md and CLAUDE.md design, project-status creation, documentation indexing, multi-stage plan management, project handoff, documentation cleanup, repository restructuring, making a repository usable from both Claude Code and Codex, or when Claude repeatedly has to rediscover the same project background and current state.
+allowed-tools:
+  - Read
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/skills/maintain-project-context/scripts/link_plans.py" *)
 ---
 
 # Maintain Project Context
@@ -27,36 +30,35 @@ that are not discoverable from the context map.
 ## Resulting Structure
 
 - Keep stable project context and exact repository paths in the project
-  `CLAUDE.md`.
+  `AGENTS.md`, which `CLAUDE.md` imports.
 - Keep the current snapshot in one project-status document when the project
   needs persistent stage tracking.
-- Keep active multi-stage working context in an ignored local plan or the
-  project's declared shared work tracker.
+- Keep active multi-stage working context in an ignored plan under
+  `.agents/plans/` or the project's declared shared work tracker.
 - Keep confirmed long-term information in its matching durable document.
 - Keep historical sequence in Git or the declared work tracker.
 
 Use the templates in `assets/` as section menus. Keep only sections that match
 the project's actual structure and lifecycle.
 
-## Multi-Harness Repositories
+## Harness Entry Points
 
-A repository may be worked on with more than one agent CLI. Claude Code reads
-`CLAUDE.md`; another CLI may read `AGENTS.md`. Duplicating project context
-across both files creates two owners for one fact and they drift apart.
+`AGENTS.md` owns the shared project context; `CLAUDE.md` is `@AGENTS.md` plus
+optional Claude Code-only notes (`assets/claude-entry-template.md`). Write
+shared content in harness-neutral terms. The reference's Harness Entry Points
+section defines the split and how to convert a repository that has only
+`CLAUDE.md` or both files. Confirm with the user before removing content from a
+populated file.
 
-Keep one canonical project context file and import it from the other entry
-point:
+## Plan Directory
 
-- When the repository already maintains `AGENTS.md`, leave it canonical and
-  make `CLAUDE.md` a bridge using `assets/claude-bridge-template.md`.
-- When the repository has no other harness's file, `CLAUDE.md` is canonical and
-  no bridge is needed.
-- Never copy shared project facts into both files. Convert an existing
-  duplicate into a bridge and delete the copied content.
-- Keep genuinely harness-specific instructions below the import in the file
-  that owns them.
-- Declare one active-plan directory for the repository and name it in the
-  canonical file, so either harness resumes from the same working memory.
+Active plans live in `.agents/plans/`, with `.codex/plans` and `.claude/plans`
+as symlinks to it. Create or repair the layout, including merging a legacy real
+directory and fixing `.gitignore`, with:
 
-Confirm with the user before converting an existing populated `CLAUDE.md` into
-a bridge, and show what content will be removed as a duplicate.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/maintain-project-context/scripts/link_plans.py" [--dry-run] [<repository-root>]
+```
+
+The script refuses on a file-name conflict or a link pointing elsewhere and
+changes nothing in that case.

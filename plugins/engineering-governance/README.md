@@ -9,7 +9,7 @@ project background every session.
 | Skill | Owns |
 | --- | --- |
 | `configure-global-guidance` | The versioned `engineering-governance` section in your global `CLAUDE.md` |
-| `maintain-project-context` | A repository's `CLAUDE.md`, status document, docs index, and active plans |
+| `maintain-project-context` | A repository's `AGENTS.md`/`CLAUDE.md` entry points, status document, docs index, and active plans |
 | `organize-workspace` | The layout of a workspace holding several repositories |
 
 ## Context Layers
@@ -19,9 +19,9 @@ One fact has one authoritative owner:
 | Layer | Owner | End state |
 | --- | --- | --- |
 | Global context | `~/.claude/CLAUDE.md` | Concise and stable |
-| Project context | Project `CLAUDE.md` | Concise and stable |
+| Project context | Project `AGENTS.md` | Concise and stable |
 | Current status | `docs/project-status.md` | Replaced in place |
-| Active plan | `.claude/plans/<initiative>.md` | Removed after handoff |
+| Active plan | `.agents/plans/<initiative>.md` | Removed after handoff |
 | Durable knowledge | Requirements, design, contracts, decisions, runbooks | Versioned and indexed |
 | History | Git, issues, pull requests | Retained |
 
@@ -51,27 +51,19 @@ python3 skills/configure-global-guidance/scripts/sync_global_guidance.py \
 ## Running Alongside Codex
 
 `engineering-governance@codex-plugins` maintains the same framework for the
-Codex CLI. The two are designed to coexist:
+Codex CLI, with the same project layout, so a repository can be worked on from
+either harness without synchronizing anything:
 
-- **Global guidance** is per-harness. `~/.claude/CLAUDE.md` and
-  `~/.codex/AGENTS.md` are peers and may each carry their own managed section.
-  This plugin never writes the Codex file.
-- **Project context** has one canonical owner per repository. When a repository
-  already has `AGENTS.md`, `maintain-project-context` keeps it canonical and
-  makes `CLAUDE.md` a one-line bridge:
+| Concern | Claude Code | Codex | Shared |
+| --- | --- | --- | --- |
+| Global guidance | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` | Nothing. Each file carries its own managed section; this plugin never writes the Codex file. |
+| Project context | `CLAUDE.md` = `@AGENTS.md` + optional Claude Code notes | `AGENTS.md` | `AGENTS.md` holds all shared facts. Codex does not expand `@` imports, so the shared content cannot live elsewhere. |
+| Active plans | `.claude/plans` | `.codex/plans` | Both are symlinks to `.agents/plans/`. |
 
-  ```markdown
-  @AGENTS.md
-  ```
-
-  Project facts therefore live in one file and cannot drift between harnesses.
-  Harness-specific instructions go below the import in the file that owns them.
-- **Active plans** use one declared directory per repository, named in the
-  canonical context file, so either harness resumes from the same working
-  memory.
-
-The skill confirms with you before converting an existing populated `CLAUDE.md`
-into a bridge, and shows what it considers duplicated content first.
+`maintain-project-context` includes `scripts/link_plans.py`, which creates the
+plan directory and links, merges a legacy real `.codex/plans/` or
+`.claude/plans/` directory, and fixes `.gitignore` (a directory-only pattern
+cannot ignore a symlink).
 
 ## Install
 

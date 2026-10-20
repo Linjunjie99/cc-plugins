@@ -142,11 +142,12 @@ the running session. Therefore:
 
    | Codex | Claude Code |
    | --- | --- |
-   | `AGENTS.md` | `CLAUDE.md` |
    | `~/.codex/AGENTS.md` | `~/.claude/CLAUDE.md` |
    | `$CODEX_HOME` | `$CLAUDE_CONFIG_DIR` |
-   | `.codex/plans/` | `.claude/plans/` |
    | `codex plugin ...` | `claude plugin ...` |
+
+   Project-level names are shared, not rewritten: project context stays in
+   `AGENTS.md` and active plans stay in `.agents/plans/`.
 
 4. Convert `.mcp.json` from Codex's `env_vars` array to Claude Code's `env`
    object, using `"${VAR:-}"` so a missing variable reaches the server as empty

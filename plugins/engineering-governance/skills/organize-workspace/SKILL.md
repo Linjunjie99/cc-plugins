@@ -17,9 +17,6 @@ Read [references/workspace-context-model.md](references/workspace-context-model.
 Use the semantic layers from the reference without requiring its example names
 or pre-creating unused categories.
 
-A workspace-level `CLAUDE.md`, when present, owns the workspace map and shared
-context entry points. Each repository owns its project structure and rules.
-
-When the workspace is also used with another agent CLI, keep one canonical
-workspace context file and have the other harness's entry point import it. See
-the `maintain-project-context` skill for the bridging rule.
+A workspace-level `AGENTS.md`, when present, owns the workspace map and shared
+context entry points; a workspace-level `CLAUDE.md` imports it with
+`@AGENTS.md`. Each repository owns its project structure and rules.
