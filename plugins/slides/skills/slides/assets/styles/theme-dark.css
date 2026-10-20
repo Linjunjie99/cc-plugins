@@ -1,0 +1,44 @@
+/* ========================================
+   深色主题（默认）
+   经典深蓝背景，红色强调
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #1a1a2e;
+    --secondary: #16213e;
+    --accent: #e94560;
+    --accent-light: #ff6b6b;
+    --gold: #f0c674;
+
+    /* 文字 */
+    --text: #eaeaea;
+    --text-muted: #a0a0a0;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    --accent-gradient: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(255, 255, 255, 0.03);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+
+    /* 列表 */
+    --list-bg: rgba(255, 255, 255, 0.02);
+    --list-hover-bg: rgba(255, 255, 255, 0.05);
+
+    /* 表格 */
+    --table-header-bg: rgba(233, 69, 96, 0.2);
+    --table-hover-bg: rgba(255, 255, 255, 0.05);
+
+    /* 导航 */
+    --nav-bg: rgba(0, 0, 0, 0.3);
+    --nav-border: rgba(255, 255, 255, 0.2);
+    --dot-bg: rgba(255, 255, 255, 0.2);
+    --dot-hover-bg: rgba(255, 255, 255, 0.5);
+    --kbd-bg: rgba(255, 255, 255, 0.1);
+
+    /* 阴影 */
+    --accent-shadow: rgba(233, 69, 96, 0.4);
+}

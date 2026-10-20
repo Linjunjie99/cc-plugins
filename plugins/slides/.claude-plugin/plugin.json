@@ -1,0 +1,8 @@
+{
+  "name": "slides",
+  "version": "1.0.0",
+  "description": "Create browser-based HTML slide presentations with modular slide files, themes, and page-by-page navigation.",
+  "author": {
+    "name": "TU"
+  }
+}

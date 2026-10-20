@@ -1,0 +1,43 @@
+/* ========================================
+   浅色主题
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #ffffff;
+    --secondary: #f8fafc;
+    --accent: #3b82f6;
+    --accent-light: #60a5fa;
+    --gold: #d97706;
+
+    /* 文字 */
+    --text: #1f2937;
+    --text-muted: #6b7280;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+    --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+
+    /* 卡片 */
+    --card-bg: #ffffff;
+    --card-border: rgba(0, 0, 0, 0.1);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+
+    /* 列表 */
+    --list-bg: rgba(0, 0, 0, 0.02);
+    --list-hover-bg: rgba(0, 0, 0, 0.05);
+
+    /* 表格 */
+    --table-header-bg: rgba(59, 130, 246, 0.1);
+    --table-hover-bg: rgba(59, 130, 246, 0.05);
+
+    /* 导航 */
+    --nav-bg: #ffffff;
+    --nav-border: rgba(0, 0, 0, 0.1);
+    --dot-bg: rgba(0, 0, 0, 0.15);
+    --dot-hover-bg: rgba(0, 0, 0, 0.3);
+    --kbd-bg: #f3f4f6;
+
+    /* 阴影 */
+    --accent-shadow: rgba(59, 130, 246, 0.3);
+}

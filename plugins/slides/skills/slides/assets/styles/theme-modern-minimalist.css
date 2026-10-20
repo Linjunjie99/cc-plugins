@@ -1,0 +1,45 @@
+/* ========================================
+   Modern Minimalist 主题
+   简洁、现代的灰度主题
+   适用：科技演示、建筑作品集、设计展示
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #ffffff;
+    --secondary: #f5f5f5;
+    --accent: #36454f;
+    --accent-light: #708090;
+    --gold: #708090;
+
+    /* 文字 */
+    --text: #36454f;
+    --text-muted: #708090;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #ffffff 0%, #f5f5f5 50%, #ebebeb 100%);
+    --accent-gradient: linear-gradient(135deg, #36454f 0%, #708090 100%);
+
+    /* 卡片 */
+    --card-bg: #ffffff;
+    --card-border: rgba(54, 69, 79, 0.1);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+
+    /* 列表 */
+    --list-bg: rgba(54, 69, 79, 0.03);
+    --list-hover-bg: rgba(54, 69, 79, 0.08);
+
+    /* 表格 */
+    --table-header-bg: rgba(54, 69, 79, 0.08);
+    --table-hover-bg: rgba(54, 69, 79, 0.04);
+
+    /* 导航 */
+    --nav-bg: #ffffff;
+    --nav-border: rgba(54, 69, 79, 0.15);
+    --dot-bg: rgba(54, 69, 79, 0.2);
+    --dot-hover-bg: rgba(54, 69, 79, 0.4);
+    --kbd-bg: #f0f0f0;
+
+    /* 阴影 */
+    --accent-shadow: rgba(54, 69, 79, 0.2);
+}

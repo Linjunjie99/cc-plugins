@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation</title>
+    <!-- Fonts (optional) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/theme-dark.css"> <!-- Change this to switch themes -->
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="slides-container" id="slidesContainer">
+        <div class="loading">Loading...</div>
+    </div>
+
+    <!-- Navigation controls -->
+    <div class="nav-controls">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()">←</button>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">→</button>
+    </div>
+
+    <!-- Page indicator -->
+    <div class="page-indicator">
+        <span class="current" id="currentPage">1</span> / <span id="totalPages">1</span>
+    </div>
+
+    <!-- Dot navigation -->
+    <div class="dots-nav" id="dotsNav"></div>
+
+    <!-- Keyboard hints -->
+    <div class="keyboard-hints">
+        Press <kbd>←</kbd> <kbd>→</kbd> or <kbd>Space</kbd> to navigate
+    </div>
+
+    <!-- Modal (optional) -->
+    <div class="modal-overlay" id="dataModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // Config: Edit this array to add/remove/reorder slides
+        // ========================================
+        const slideFiles = [
+            'slides/01_cover.html',
+            'slides/02_content.html',
+            // Add more slides...
+        ];
+        // ========================================
+
+        let slides = [];
+        let currentSlide = 0;
+        let totalSlides = 0;
+
+        // Load all slides
+        async function loadSlides() {
+            const container = document.getElementById('slidesContainer');
+
+            try {
+                const loadPromises = slideFiles.map(file =>
+                    fetch(file).then(response => {
+                        if (!response.ok) throw new Error(`Failed to load ${file}`);
+                        return response.text();
+                    })
+                );
+
+                const contents = await Promise.all(loadPromises);
+
+                container.innerHTML = '';
+                contents.forEach((html, index) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = html.trim();
+                    const slideElement = wrapper.firstElementChild;
+                    if (index === 0) slideElement.classList.add('active');
+                    container.appendChild(slideElement);
+                });
+
+                initializeSlides();
+            } catch (error) {
+                container.innerHTML = `<div class="slide active" style="text-align:center;">
+                    <h2 style="color:var(--accent);">Loading Failed</h2>
+                    <p>${error.message}</p>
+                    <p style="margin-top:20px;">Please ensure you are running a local server</p>
+                </div>`;
+            }
+        }
+
+        function initializeSlides() {
+            slides = document.querySelectorAll('.slide');
+            totalSlides = slides.length;
+            document.getElementById('totalPages').textContent = totalSlides;
+            createDots();
+            updateNavigation();
+        }
+
+        function createDots() {
+            const dotsNav = document.getElementById('dotsNav');
+            dotsNav.innerHTML = '';
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot' + (i === 0 ? ' active' : '');
+                dot.onclick = () => goToSlide(i);
+                dotsNav.appendChild(dot);
+            }
+        }
+
+        function updateNavigation() {
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('currentPage').textContent = currentSlide + 1;
+            document.querySelectorAll('.dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentSlide);
+            });
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides || index === currentSlide) return;
+            const direction = index > currentSlide ? 1 : -1;
+            slides[currentSlide].classList.remove('active');
+            slides[currentSlide].classList.toggle('prev', direction === 1);
+            currentSlide = index;
+            slides[currentSlide].classList.add('active');
+            slides[currentSlide].classList.remove('prev');
+            updateNavigation();
+        }
+
+        function nextSlide() { goToSlide(currentSlide + 1); }
+        function prevSlide() { goToSlide(currentSlide - 1); }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('dataModal').classList.contains('active')) {
+                if (e.key === 'Escape') closeModal();
+                return;
+            }
+            switch (e.key) {
+                case 'ArrowRight': case ' ': case 'Enter':
+                    e.preventDefault(); nextSlide(); break;
+                case 'ArrowLeft':
+                    prevSlide(); break;
+                case 'ArrowUp':
+                    goToSlide(0); break;
+                case 'ArrowDown':
+                    goToSlide(totalSlides - 1); break;
+            }
+        });
+
+        // Touch support
+        let touchStartX = 0, touchEndX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                diff > 0 ? nextSlide() : prevSlide();
+            }
+        });
+
+        // Modal
+        function openModal(dataUrl) {
+            const modal = document.getElementById('dataModal');
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = '<p style="text-align:center;padding:40px;">Loading...</p>';
+            modal.classList.add('active');
+            fetch(dataUrl)
+                .then(response => response.text())
+                .then(html => { modalBody.innerHTML = html; })
+                .catch(error => {
+                    modalBody.innerHTML = `<p style="text-align:center;padding:40px;color:var(--accent);">Failed to load: ${error.message}</p>`;
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('dataModal').classList.remove('active');
+        }
+
+        document.getElementById('dataModal').addEventListener('click', (e) => {
+            if (e.target.id === 'dataModal') closeModal();
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadSlides);
+    </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+/* ========================================
+   Arctic Frost 主题
+   清冷、精致的冬季主题
+   适用：医疗演示、科技方案、清洁技术
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #fafafa;
+    --secondary: #f0f4f8;
+    --accent: #4a6fa5;
+    --accent-light: #6b8fc5;
+    --gold: #4a6fa5;
+
+    /* 文字 */
+    --text: #2c3e50;
+    --text-muted: #708090;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #fafafa 0%, #f0f4f8 50%, #d4e4f7 100%);
+    --accent-gradient: linear-gradient(135deg, #4a6fa5 0%, #6b8fc5 100%);
+
+    /* 卡片 */
+    --card-bg: #ffffff;
+    --card-border: rgba(74, 111, 165, 0.15);
+    --card-shadow: 0 20px 40px rgba(74, 111, 165, 0.1);
+
+    /* 列表 */
+    --list-bg: rgba(74, 111, 165, 0.05);
+    --list-hover-bg: rgba(74, 111, 165, 0.1);
+
+    /* 表格 */
+    --table-header-bg: rgba(74, 111, 165, 0.1);
+    --table-hover-bg: rgba(74, 111, 165, 0.05);
+
+    /* 导航 */
+    --nav-bg: #ffffff;
+    --nav-border: rgba(74, 111, 165, 0.2);
+    --dot-bg: rgba(74, 111, 165, 0.25);
+    --dot-hover-bg: rgba(74, 111, 165, 0.5);
+    --kbd-bg: #e8f0f8;
+
+    /* 阴影 */
+    --accent-shadow: rgba(74, 111, 165, 0.3);
+}

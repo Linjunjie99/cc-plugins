@@ -1,0 +1,45 @@
+/* ========================================
+   Midnight Galaxy 主题
+   神秘、宇宙感的深紫主题
+   适用：娱乐行业、游戏演示、奢侈品牌
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #2b1e3e;
+    --secondary: #3a2a52;
+    --accent: #a490c2;
+    --accent-light: #c4b4d8;
+    --gold: #a490c2;
+
+    /* 文字 */
+    --text: #e6e6fa;
+    --text-muted: #b8a8c8;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #2b1e3e 0%, #3a2a52 50%, #1a1228 100%);
+    --accent-gradient: linear-gradient(135deg, #4a4e8f 0%, #a490c2 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(164, 144, 194, 0.05);
+    --card-border: rgba(164, 144, 194, 0.15);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+
+    /* 列表 */
+    --list-bg: rgba(164, 144, 194, 0.08);
+    --list-hover-bg: rgba(164, 144, 194, 0.15);
+
+    /* 表格 */
+    --table-header-bg: rgba(164, 144, 194, 0.2);
+    --table-hover-bg: rgba(164, 144, 194, 0.1);
+
+    /* 导航 */
+    --nav-bg: rgba(43, 30, 62, 0.9);
+    --nav-border: rgba(164, 144, 194, 0.3);
+    --dot-bg: rgba(164, 144, 194, 0.3);
+    --dot-hover-bg: rgba(164, 144, 194, 0.6);
+    --kbd-bg: rgba(164, 144, 194, 0.1);
+
+    /* 阴影 */
+    --accent-shadow: rgba(164, 144, 194, 0.4);
+}

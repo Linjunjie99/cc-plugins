@@ -1,0 +1,45 @@
+/* ========================================
+   Tech Innovation 主题
+   大胆、现代的科技主题
+   适用：科技初创、软件发布、AI演示
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #1e1e1e;
+    --secondary: #2a2a2a;
+    --accent: #0066ff;
+    --accent-light: #00ffff;
+    --gold: #00ffff;
+
+    /* 文字 */
+    --text: #ffffff;
+    --text-muted: #a0a0a0;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 50%, #0d0d0d 100%);
+    --accent-gradient: linear-gradient(135deg, #0066ff 0%, #00ffff 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(0, 102, 255, 0.05);
+    --card-border: rgba(0, 255, 255, 0.15);
+    --card-shadow: 0 20px 40px rgba(0, 102, 255, 0.2);
+
+    /* 列表 */
+    --list-bg: rgba(0, 102, 255, 0.08);
+    --list-hover-bg: rgba(0, 102, 255, 0.15);
+
+    /* 表格 */
+    --table-header-bg: rgba(0, 102, 255, 0.2);
+    --table-hover-bg: rgba(0, 102, 255, 0.1);
+
+    /* 导航 */
+    --nav-bg: rgba(30, 30, 30, 0.9);
+    --nav-border: rgba(0, 255, 255, 0.3);
+    --dot-bg: rgba(0, 255, 255, 0.3);
+    --dot-hover-bg: rgba(0, 255, 255, 0.6);
+    --kbd-bg: rgba(0, 102, 255, 0.15);
+
+    /* 阴影 */
+    --accent-shadow: rgba(0, 102, 255, 0.5);
+}

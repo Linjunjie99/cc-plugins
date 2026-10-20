@@ -1,0 +1,45 @@
+/* ========================================
+   Golden Hour 主题
+   温暖、丰富的秋日主题
+   适用：餐饮演示、酒店品牌、秋季活动
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #4a403a;
+    --secondary: #5a4d45;
+    --accent: #f4a900;
+    --accent-light: #f4c430;
+    --gold: #f4a900;
+
+    /* 文字 */
+    --text: #faf8f5;
+    --text-muted: #d4b896;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #4a403a 0%, #5a4d45 50%, #3a322d 100%);
+    --accent-gradient: linear-gradient(135deg, #f4a900 0%, #c1666b 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-border: rgba(244, 169, 0, 0.2);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+
+    /* 列表 */
+    --list-bg: rgba(244, 169, 0, 0.08);
+    --list-hover-bg: rgba(244, 169, 0, 0.15);
+
+    /* 表格 */
+    --table-header-bg: rgba(244, 169, 0, 0.2);
+    --table-hover-bg: rgba(244, 169, 0, 0.1);
+
+    /* 导航 */
+    --nav-bg: rgba(74, 64, 58, 0.8);
+    --nav-border: rgba(244, 169, 0, 0.3);
+    --dot-bg: rgba(244, 169, 0, 0.3);
+    --dot-hover-bg: rgba(244, 169, 0, 0.6);
+    --kbd-bg: rgba(244, 169, 0, 0.1);
+
+    /* 阴影 */
+    --accent-shadow: rgba(244, 169, 0, 0.4);
+}

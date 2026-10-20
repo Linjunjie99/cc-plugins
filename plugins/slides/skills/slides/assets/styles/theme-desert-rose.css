@@ -1,0 +1,45 @@
+/* ========================================
+   Desert Rose 主题
+   柔和、优雅的沙漠玫瑰主题
+   适用：时尚演示、美妆品牌、婚礼策划
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #5d2e46;
+    --secondary: #6d3a54;
+    --accent: #d4a5a5;
+    --accent-light: #e8c4c4;
+    --gold: #b87d6d;
+
+    /* 文字 */
+    --text: #faf5f3;
+    --text-muted: #e8d5c4;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #5d2e46 0%, #6d3a54 50%, #4a2438 100%);
+    --accent-gradient: linear-gradient(135deg, #d4a5a5 0%, #b87d6d 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --card-border: rgba(212, 165, 165, 0.2);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+
+    /* 列表 */
+    --list-bg: rgba(212, 165, 165, 0.1);
+    --list-hover-bg: rgba(212, 165, 165, 0.18);
+
+    /* 表格 */
+    --table-header-bg: rgba(212, 165, 165, 0.2);
+    --table-hover-bg: rgba(212, 165, 165, 0.1);
+
+    /* 导航 */
+    --nav-bg: rgba(93, 46, 70, 0.8);
+    --nav-border: rgba(212, 165, 165, 0.3);
+    --dot-bg: rgba(212, 165, 165, 0.3);
+    --dot-hover-bg: rgba(212, 165, 165, 0.6);
+    --kbd-bg: rgba(212, 165, 165, 0.1);
+
+    /* 阴影 */
+    --accent-shadow: rgba(212, 165, 165, 0.4);
+}

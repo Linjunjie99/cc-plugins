@@ -1,0 +1,45 @@
+/* ========================================
+   Sunset Boulevard 主题
+   温暖、活力的日落主题
+   适用：创意提案、营销演示、活动推广
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #264653;
+    --secondary: #2a5260;
+    --accent: #e76f51;
+    --accent-light: #f4a261;
+    --gold: #e9c46a;
+
+    /* 文字 */
+    --text: #faf8f5;
+    --text-muted: #c4beb5;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #264653 0%, #2a5260 50%, #1d3640 100%);
+    --accent-gradient: linear-gradient(135deg, #e76f51 0%, #f4a261 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(255, 255, 255, 0.04);
+    --card-border: rgba(231, 111, 81, 0.2);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+
+    /* 列表 */
+    --list-bg: rgba(231, 111, 81, 0.08);
+    --list-hover-bg: rgba(231, 111, 81, 0.15);
+
+    /* 表格 */
+    --table-header-bg: rgba(231, 111, 81, 0.2);
+    --table-hover-bg: rgba(231, 111, 81, 0.1);
+
+    /* 导航 */
+    --nav-bg: rgba(38, 70, 83, 0.8);
+    --nav-border: rgba(244, 162, 97, 0.3);
+    --dot-bg: rgba(244, 162, 97, 0.3);
+    --dot-hover-bg: rgba(244, 162, 97, 0.6);
+    --kbd-bg: rgba(244, 162, 97, 0.1);
+
+    /* 阴影 */
+    --accent-shadow: rgba(231, 111, 81, 0.4);
+}

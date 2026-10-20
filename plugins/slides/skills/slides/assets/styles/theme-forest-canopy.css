@@ -1,0 +1,45 @@
+/* ========================================
+   Forest Canopy 主题
+   自然、稳重的森林主题
+   适用：环保演示、可持续报告、户外品牌
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #2d4a2b;
+    --secondary: #3a5a38;
+    --accent: #7d8471;
+    --accent-light: #a4ac86;
+    --gold: #a4ac86;
+
+    /* 文字 */
+    --text: #faf9f6;
+    --text-muted: #c5c8be;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #2d4a2b 0%, #3a5a38 50%, #1f331e 100%);
+    --accent-gradient: linear-gradient(135deg, #7d8471 0%, #a4ac86 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(255, 255, 255, 0.04);
+    --card-border: rgba(164, 172, 134, 0.2);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+
+    /* 列表 */
+    --list-bg: rgba(125, 132, 113, 0.1);
+    --list-hover-bg: rgba(125, 132, 113, 0.2);
+
+    /* 表格 */
+    --table-header-bg: rgba(125, 132, 113, 0.2);
+    --table-hover-bg: rgba(125, 132, 113, 0.1);
+
+    /* 导航 */
+    --nav-bg: rgba(45, 74, 43, 0.8);
+    --nav-border: rgba(164, 172, 134, 0.3);
+    --dot-bg: rgba(164, 172, 134, 0.3);
+    --dot-hover-bg: rgba(164, 172, 134, 0.6);
+    --kbd-bg: rgba(164, 172, 134, 0.1);
+
+    /* 阴影 */
+    --accent-shadow: rgba(125, 132, 113, 0.4);
+}

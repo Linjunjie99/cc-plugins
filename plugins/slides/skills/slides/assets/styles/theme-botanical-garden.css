@@ -1,0 +1,45 @@
+/* ========================================
+   Botanical Garden 主题
+   清新、有机的花园主题
+   适用：园艺中心、餐饮演示、天然产品
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #f5f3ed;
+    --secondary: #ebe8df;
+    --accent: #4a7c59;
+    --accent-light: #6a9c79;
+    --gold: #f9a620;
+
+    /* 文字 */
+    --text: #2d3a2e;
+    --text-muted: #5a6b5c;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #f5f3ed 0%, #ebe8df 50%, #e0ddd3 100%);
+    --accent-gradient: linear-gradient(135deg, #4a7c59 0%, #f9a620 100%);
+
+    /* 卡片 */
+    --card-bg: #ffffff;
+    --card-border: rgba(74, 124, 89, 0.15);
+    --card-shadow: 0 20px 40px rgba(74, 124, 89, 0.1);
+
+    /* 列表 */
+    --list-bg: rgba(74, 124, 89, 0.06);
+    --list-hover-bg: rgba(74, 124, 89, 0.12);
+
+    /* 表格 */
+    --table-header-bg: rgba(74, 124, 89, 0.12);
+    --table-hover-bg: rgba(74, 124, 89, 0.06);
+
+    /* 导航 */
+    --nav-bg: #ffffff;
+    --nav-border: rgba(74, 124, 89, 0.2);
+    --dot-bg: rgba(74, 124, 89, 0.25);
+    --dot-hover-bg: rgba(74, 124, 89, 0.5);
+    --kbd-bg: #e8ebe5;
+
+    /* 阴影 */
+    --accent-shadow: rgba(74, 124, 89, 0.3);
+}

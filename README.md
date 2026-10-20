@@ -17,8 +17,9 @@ rather than emulating the other.
   and long-lived documentation.
 - `dingtalk`: manages DingTalk contacts, online documents, and confirmed
   work-report publishing from local Markdown through one wrapped MCP server.
-
-Not ported: `slides` remains Codex-only for now.
+- `slides`: creates browser-based HTML slide presentations with modular slide
+  files, themes, and page-by-page navigation. It was authored directly for
+  Claude Code in this repository rather than ported.
 
 ## Install
 
@@ -29,6 +30,7 @@ claude plugin marketplace add /root/workspace/20_personal/projects/cc-plugins
 claude plugin install dev-env@cc-plugins
 claude plugin install engineering-governance@cc-plugins
 claude plugin install dingtalk@cc-plugins
+claude plugin install slides@cc-plugins
 ```
 
 `dingtalk` additionally needs the three `DINGTALK_*_MCP_URL` environment
@@ -41,6 +43,7 @@ claude plugin marketplace add git@github.com:Linjunjie99/cc-plugins.git
 claude plugin install dev-env@cc-plugins
 claude plugin install engineering-governance@cc-plugins
 claude plugin install dingtalk@cc-plugins
+claude plugin install slides@cc-plugins
 ```
 
 To receive a later release:

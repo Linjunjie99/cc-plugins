@@ -32,6 +32,15 @@
       },
       "category": "productivity",
       "source": "./plugins/dingtalk"
+    },
+    {
+      "name": "slides",
+      "description": "Create browser-based HTML slide presentations with modular slide files, themes, and page-by-page navigation.",
+      "author": {
+        "name": "TU"
+      },
+      "category": "productivity",
+      "source": "./plugins/slides"
     }
   ]
 }

@@ -1,0 +1,45 @@
+/* ========================================
+   Ocean Depths 主题
+   专业、平静的海洋主题
+   适用：企业演示、财务报告、咨询方案
+   ======================================== */
+
+:root {
+    /* 主色调 */
+    --primary: #1a2332;
+    --secondary: #243447;
+    --accent: #2d8b8b;
+    --accent-light: #a8dadc;
+    --gold: #a8dadc;
+
+    /* 文字 */
+    --text: #f1faee;
+    --text-muted: #b8c5d0;
+
+    /* 渐变 */
+    --bg-gradient: linear-gradient(135deg, #1a2332 0%, #243447 50%, #2d4a5e 100%);
+    --accent-gradient: linear-gradient(135deg, #2d8b8b 0%, #a8dadc 100%);
+
+    /* 卡片 */
+    --card-bg: rgba(255, 255, 255, 0.03);
+    --card-border: rgba(168, 218, 220, 0.15);
+    --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+
+    /* 列表 */
+    --list-bg: rgba(45, 139, 139, 0.08);
+    --list-hover-bg: rgba(45, 139, 139, 0.15);
+
+    /* 表格 */
+    --table-header-bg: rgba(45, 139, 139, 0.2);
+    --table-hover-bg: rgba(45, 139, 139, 0.1);
+
+    /* 导航 */
+    --nav-bg: rgba(26, 35, 50, 0.8);
+    --nav-border: rgba(168, 218, 220, 0.2);
+    --dot-bg: rgba(168, 218, 220, 0.3);
+    --dot-hover-bg: rgba(168, 218, 220, 0.6);
+    --kbd-bg: rgba(168, 218, 220, 0.1);
+
+    /* 阴影 */
+    --accent-shadow: rgba(45, 139, 139, 0.4);
+}
