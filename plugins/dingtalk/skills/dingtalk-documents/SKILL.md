@@ -11,9 +11,11 @@ allowed-tools:
 Treat local Markdown as the source of truth. Use the `dingtalk_docs_*` workflow tools of the
 plugin's `dingtalk` MCP server instead of putting document bodies into raw DingTalk MCP calls.
 
-Call the workflow tools with absolute `file_path` and `output_path` values, and pass the
-current working directory as `cwd` so a project `.claude/dingtalk.toml` is discovered. The MCP
-server's own working directory is not guaranteed to match the session's.
+Call the workflow tools with absolute `file_path` and `output_path` values. The MCP server's own
+working directory is not guaranteed to match the session's.
+
+If `status` reports `configured: false`, stop and run the `dingtalk-setup` skill first. There are
+no default directories.
 
 Before creating, editing, pulling, adopting, or pushing a document, read
 [references/document-policy.md](references/document-policy.md) completely. For a new document,
@@ -26,7 +28,7 @@ confidentiality, or repository rules.
 
 ## Draft
 
-1. Resolve `documents_root` from the effective DingTalk configuration: run
+1. Resolve `documents_root` from the DingTalk configuration: run
    `node "${CLAUDE_PLUGIN_ROOT}/dist/setup.cjs" status` and read `paths.documents_root`.
 2. Start from `assets/document.md` unless the user supplied an existing document or a more specific
    structure.

@@ -13,9 +13,11 @@ inspecting, or publishing, read [references/reporting-policy.md](references/repo
 completely. The configured `reports_root` README is a directory marker, not the policy or template
 source.
 
-Call the workflow tools with absolute `file_path` and `output_path` values, and pass the
-current working directory as `cwd` so a project `.claude/dingtalk.toml` is discovered. The MCP
-server's own working directory is not guaranteed to match the session's.
+Call the workflow tools with absolute `file_path` and `output_path` values. The MCP server's own
+working directory is not guaranteed to match the session's.
+
+If `status` reports `configured: false`, stop and run the `dingtalk-setup` skill first. There are
+no default directories.
 
 Read the matching bundled asset before creating a report:
 
@@ -30,7 +32,7 @@ ownership, confidentiality, or repository rules.
 
 ## Draft
 
-1. Resolve `reports_root` from the effective DingTalk configuration: run
+1. Resolve `reports_root` from the DingTalk configuration: run
    `node "${CLAUDE_PLUGIN_ROOT}/dist/setup.cjs" status` and read `paths.reports_root`.
 2. Read the matching bundled asset, existing canonical report, and relevant work materials.
 3. Create or update the canonical period file under `reports_root`; do not create a local template

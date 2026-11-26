@@ -5,8 +5,6 @@ import { initialize, setRecipients, setupStatus } from "../src/setup.js";
 const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
-    "project-dir": { type: "string" },
-    "company-root": { type: "string" },
     "documents-root": { type: "string" },
     "reports-root": { type: "string" },
     "user-id": { type: "string", multiple: true },
@@ -14,26 +12,22 @@ const { positionals, values } = parseArgs({
   },
 });
 
-const command = positionals[0] || "initialize";
+const command = positionals[0] || "status";
 let result;
 
-if (command === "status") {
-  result = setupStatus({ cwd: process.cwd() });
-} else if (command === "initialize") {
-  result = initialize({
-    project_dir: values["project-dir"],
-    company_root: values["company-root"],
-    documents_root: values["documents-root"],
-    reports_root: values["reports-root"],
-  });
-} else if (command === "set-recipients") {
-  result = setRecipients({
-    project_dir: values["project-dir"],
-    user_ids: values["user-id"],
-    report_types: values["report-type"],
-  });
-} else {
-  throw new Error(`Unknown command: ${command}. Use status, initialize, or set-recipients.`);
+try {
+  if (command === "status") {
+    result = setupStatus();
+  } else if (command === "initialize") {
+    result = initialize({ documents_root: values["documents-root"], reports_root: values["reports-root"] });
+  } else if (command === "set-recipients") {
+    result = setRecipients({ user_ids: values["user-id"], report_types: values["report-type"] });
+  } else {
+    throw new Error(`Unknown command: ${command}. Use status, initialize, or set-recipients.`);
+  }
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
 }
 
 console.log(JSON.stringify(result, null, 2));

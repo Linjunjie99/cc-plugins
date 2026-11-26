@@ -8,7 +8,6 @@ await build({
   entryPoints: {
     server: "src/server.js",
     doctor: "scripts/doctor.js",
-    "init-config": "scripts/init-config.js",
     setup: "scripts/setup.js",
   },
   outdir: "dist",

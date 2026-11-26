@@ -6,43 +6,78 @@ import path from "node:path";
 import test from "node:test";
 import { parse } from "smol-toml";
 import { loadMcpUrls } from "../src/environment.js";
-import { initialize, setRecipients } from "../src/setup.js";
+import { initialize, setRecipients, setupStatus } from "../src/setup.js";
 
-test("project initialization creates directory markers without local templates", () => {
+function sandbox() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "dingtalk-setup-"));
-  const company = path.join(root, "company");
-  const result = initialize({ project_dir: root, company_root: company });
-  assert.equal(result.config_file, path.join(root, ".claude", "dingtalk.toml"));
-  assert.deepEqual(result.default_recipients, []);
-  assert.ok(fs.existsSync(path.join(company, "documents")));
-  assert.match(fs.readFileSync(path.join(company, "documents", "README.md"), "utf8"), /\/dingtalk:dingtalk-documents/);
-  assert.match(fs.readFileSync(path.join(company, "reporting", "README.md"), "utf8"), /\/dingtalk:dingtalk-reports/);
-  assert.equal(fs.existsSync(path.join(company, "reporting", "templates")), false);
-  const config = parse(fs.readFileSync(result.config_file, "utf8"));
-  assert.deepEqual(config.reports.recipients.common, []);
-  assert.deepEqual(config.reports.recipients.annual, []);
+  const env = { DINGTALK_CONFIG: path.join(root, "config", "config.toml") };
+  return { root, env, docs: path.join(root, "company", "documents"), reports: path.join(root, "company", "reporting") };
+}
+
+test("first setup requires both directories instead of guessing", () => {
+  const { env } = sandbox();
+  assert.throws(() => initialize({ env }), /documents_root and reports_root are required/);
+  assert.throws(() => initialize({ env, documents_root: "/tmp/only-docs" }), /required/);
+  assert.equal(fs.existsSync(env.DINGTALK_CONFIG), false);
 });
 
-test("first user setup imports the Codex configuration without writing it", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dingtalk-import-"));
-  const env = { CLAUDE_CONFIG_DIR: path.join(root, "claude"), CODEX_HOME: path.join(root, "codex") };
-  const codexFile = path.join(env.CODEX_HOME, "dingtalk.toml");
-  const codexToml = `version = 1\n[paths]\ncompany_root = '${root}/company'\ndocuments_root = '${root}/company/docs'\nreports_root = '${root}/company/reports'\n[reports.recipients]\nweekly = ['10001']\n`;
-  fs.mkdirSync(env.CODEX_HOME);
-  fs.writeFileSync(codexFile, codexToml);
+test("initialization writes the shared file and directory markers", () => {
+  const { env, docs, reports } = sandbox();
+  const result = initialize({ env, documents_root: docs, reports_root: reports });
+  assert.equal(result.config_file, env.DINGTALK_CONFIG);
+  assert.equal(fs.statSync(env.DINGTALK_CONFIG).mode & 0o777, 0o600);
+  assert.deepEqual(result.default_recipients, []);
+  assert.match(fs.readFileSync(path.join(docs, "README.md"), "utf8"), /dingtalk-documents/);
+  assert.match(fs.readFileSync(path.join(reports, "README.md"), "utf8"), /dingtalk-reports/);
+  for (const dir of ["daily", "weekly", "monthly", "annual", "imported"]) {
+    assert.ok(fs.existsSync(path.join(reports, dir)), dir);
+  }
+  const config = parse(fs.readFileSync(env.DINGTALK_CONFIG, "utf8"));
+  assert.equal(config.paths.documents_root, docs);
+  assert.equal(Object.hasOwn(config.paths, "company_root"), false);
+});
 
-  const result = initialize({ env });
-  assert.equal(result.config_file, path.join(env.CLAUDE_CONFIG_DIR, "dingtalk.toml"));
-  assert.equal(result.imported_from, codexFile);
-  assert.equal(result.documents_root, path.join(root, "company", "docs"));
-  assert.deepEqual(result.default_recipients, ["10001"]);
-  assert.equal(fs.readFileSync(codexFile, "utf8"), codexToml);
-
-  setRecipients({ env, user_ids: ["10002"], report_types: ["weekly"] });
+test("re-running setup keeps configured paths and recipients", () => {
+  const { env, docs, reports } = sandbox();
+  initialize({ env, documents_root: docs, reports_root: reports });
+  setRecipients({ env, user_ids: ["10001"], report_types: ["weekly"] });
   const again = initialize({ env });
-  assert.equal(again.imported_from, null);
-  assert.deepEqual(again.default_recipients, ["10002"]);
-  assert.equal(fs.readFileSync(codexFile, "utf8"), codexToml);
+  assert.equal(again.documents_root, docs);
+  assert.equal(again.reports_root, reports);
+  assert.deepEqual(again.default_recipients, ["10001"]);
+});
+
+test("one path can be changed without touching the other", () => {
+  const { root, env, docs, reports } = sandbox();
+  initialize({ env, documents_root: docs, reports_root: reports });
+  const moved = path.join(root, "elsewhere", "reports");
+  const result = initialize({ env, reports_root: moved });
+  assert.equal(result.documents_root, docs);
+  assert.equal(result.reports_root, moved);
+});
+
+test("recipients cannot be saved before initialization", () => {
+  const { env } = sandbox();
+  assert.throws(() => setRecipients({ env, user_ids: ["10001"] }), /Run initialize first/);
+});
+
+test("verified recipient IDs can be assigned by report type", () => {
+  const { env, docs, reports } = sandbox();
+  initialize({ env, documents_root: docs, reports_root: reports });
+  setRecipients({ env, user_ids: ["10001"], report_types: ["weekly", "monthly", "annual"] });
+  const config = parse(fs.readFileSync(env.DINGTALK_CONFIG, "utf8"));
+  assert.deepEqual(config.reports.recipients.daily, []);
+  assert.deepEqual(config.reports.recipients.weekly, ["10001"]);
+  assert.deepEqual(config.reports.recipients.annual, ["10001"]);
+});
+
+test("status reports an unconfigured machine without failing", () => {
+  const { env } = sandbox();
+  const status = setupStatus({ env });
+  assert.equal(status.config_exists, false);
+  assert.equal(status.configured, false);
+  assert.equal(status.paths.documents_root, null);
+  assert.equal(status.paths.documents_root_exists, false);
 });
 
 test("MCP URLs come only from environment variables", () => {
@@ -52,48 +87,28 @@ test("MCP URLs come only from environment variables", () => {
   assert.equal(urls.log, "");
 });
 
-test("verified recipient IDs can be assigned by report type", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dingtalk-set-recipients-"));
-  initialize({ project_dir: root, company_root: path.join(root, "company") });
-  setRecipients({ project_dir: root, user_ids: ["10001"], report_types: ["weekly", "monthly", "annual"] });
-  const config = parse(fs.readFileSync(path.join(root, ".claude", "dingtalk.toml"), "utf8"));
-  assert.deepEqual(config.reports.recipients.daily, []);
-  assert.deepEqual(config.reports.recipients.weekly, ["10001"]);
-  assert.deepEqual(config.reports.recipients.monthly, ["10001"]);
-  assert.deepEqual(config.reports.recipients.annual, ["10001"]);
-});
-
 test("setup CLI works without any DingTalk MCP environment", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dingtalk-setup-cli-"));
+  const { root, docs, reports } = sandbox();
   const script = new URL("../scripts/setup.js", import.meta.url).pathname;
-  const env = { ...process.env, HOME: path.join(root, "home") };
-  delete env.CLAUDE_CONFIG_DIR;
-  delete env.CODEX_HOME;
+  const env = { ...process.env, HOME: path.join(root, "home"), DINGTALK_CONFIG: path.join(root, "cli.toml") };
   delete env.DINGTALK_CONTACTS_MCP_URL;
   delete env.DINGTALK_DOCS_MCP_URL;
   delete env.DINGTALK_LOG_MCP_URL;
+  const run = (...args) => spawnSync(process.execPath, [script, ...args], { encoding: "utf8", env });
 
-  const initialized = spawnSync(process.execPath, [
-    script, "initialize", "--project-dir", root, "--company-root", path.join(root, "company"),
-  ], { encoding: "utf8", env });
-  assert.equal(initialized.status, 0, initialized.stderr);
+  const missing = run("initialize");
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /required/);
 
-  const recipients = spawnSync(process.execPath, [
-    script, "set-recipients", "--project-dir", root,
-    "--user-id", "10001", "--report-type", "weekly",
-  ], { encoding: "utf8", env });
-  assert.equal(recipients.status, 0, recipients.stderr);
+  assert.equal(run("initialize", "--documents-root", docs, "--reports-root", reports).status, 0);
+  assert.equal(run("set-recipients", "--user-id", "10001", "--report-type", "weekly").status, 0);
 
-  const status = spawnSync(process.execPath, [script, "status"], {
-    cwd: root,
-    encoding: "utf8",
-    env,
-  });
+  const status = run("status");
   assert.equal(status.status, 0, status.stderr);
   const result = JSON.parse(status.stdout);
+  assert.equal(result.configured, true);
   assert.equal(result.mcp.contacts.configured, false);
   assert.equal(result.paths.documents_root_exists, true);
-  assert.equal(result.root_readmes.documents, true);
   assert.equal(result.root_readmes.reports, true);
   assert.equal(result.default_report_recipient_count, 1);
 });

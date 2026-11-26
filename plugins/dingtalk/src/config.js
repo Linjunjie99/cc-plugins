@@ -3,14 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { parse } from "smol-toml";
 
+// Behavioural defaults only. Machine-specific values (paths, recipients) have no default: they
+// come from the shared configuration file written by the setup skill.
 const DEFAULTS = {
   version: 1,
   timezone: "Asia/Shanghai",
-  paths: {
-    company_root: "/root/workspace/10_company",
-    documents_root: "/root/workspace/10_company/documents",
-    reports_root: "/root/workspace/10_company/reporting",
-  },
+  paths: { documents_root: "", reports_root: "" },
   documents: { target: { workspace_id: "", folder_id: "" } },
   reports: {
     require_confirmation: true,
@@ -19,17 +17,26 @@ const DEFAULTS = {
   },
 };
 
-export function claudeHome(env = process.env) {
-  return env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+export const SETUP_HINT = "Run the dingtalk-setup skill to configure DingTalk on this machine.";
+
+// One configuration file per machine, shared by the Claude Code and Codex plugins.
+export function configPath(env = process.env) {
+  return env.DINGTALK_CONFIG || path.join(os.homedir(), ".config", "dingtalk", "config.toml");
 }
 
-export function userConfigPath(env = process.env) {
-  return path.join(claudeHome(env), "dingtalk.toml");
+export function expandHome(value) {
+  if (value === "~") return os.homedir();
+  if (value?.startsWith("~/")) return path.join(os.homedir(), value.slice(2));
+  return value;
 }
 
-// The Codex plugin's user configuration. Read only, to seed a first Claude Code setup.
-export function codexUserConfigPath(env = process.env) {
-  return path.join(env.CODEX_HOME || path.join(os.homedir(), ".codex"), "dingtalk.toml");
+// Store paths under the home directory as ~/... so the file reads the same on every machine.
+export function portablePath(value) {
+  const absolute = path.resolve(expandHome(value));
+  const home = os.homedir();
+  return absolute === home || absolute.startsWith(home + path.sep)
+    ? `~${absolute.slice(home.length)}`
+    : absolute;
 }
 
 function isObject(value) {
@@ -46,31 +53,29 @@ export function mergeConfig(base, overlay) {
   return result;
 }
 
-function readToml(file) {
-  if (!fs.existsSync(file)) return {};
-  return parse(fs.readFileSync(file, "utf8"));
+export function readConfigFile(file) {
+  return fs.existsSync(file) ? parse(fs.readFileSync(file, "utf8")) : null;
 }
 
-export function findProjectConfig(startDir) {
-  let current = path.resolve(startDir);
-  while (true) {
-    const candidate = path.join(current, ".claude", "dingtalk.toml");
-    if (fs.existsSync(candidate)) return candidate;
-    if (fs.existsSync(path.join(current, ".git"))) return null;
-    const parent = path.dirname(current);
-    if (parent === current) return null;
-    current = parent;
+// Returns { config, file, configured }. `configured` is false when the file or a required path is
+// missing; callers that need paths use requireConfig instead.
+export function loadConfig({ env = process.env } = {}) {
+  const file = configPath(env);
+  const raw = readConfigFile(file);
+  const config = mergeConfig(DEFAULTS, raw || {});
+  if (config.version !== 1) throw new Error(`Unsupported DingTalk config version ${config.version} in ${file}`);
+  config.paths.documents_root = expandHome(config.paths.documents_root);
+  config.paths.reports_root = expandHome(config.paths.reports_root);
+  const configured = Boolean(raw && config.paths.documents_root && config.paths.reports_root);
+  return { config, file, configured };
+}
+
+export function requireConfig(options) {
+  const loaded = loadConfig(options);
+  if (!loaded.configured) {
+    throw new Error(`DingTalk is not configured: ${loaded.file} is missing or has no documents_root/reports_root. ${SETUP_HINT}`);
   }
-}
-
-export function loadConfig({ cwd = process.cwd(), explicit = {} } = {}) {
-  const userFile = userConfigPath();
-  const projectFile = findProjectConfig(cwd);
-  let config = mergeConfig(DEFAULTS, readToml(userFile));
-  if (projectFile && projectFile !== userFile) config = mergeConfig(config, readToml(projectFile));
-  config = mergeConfig(config, explicit);
-  if (config.version !== 1) throw new Error(`Unsupported dingtalk.toml version: ${config.version}`);
-  return { config, sources: { user: userFile, project: projectFile } };
+  return loaded;
 }
 
 export { DEFAULTS };

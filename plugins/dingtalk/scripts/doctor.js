@@ -1,21 +1,19 @@
 #!/usr/bin/env node
-import fs from "node:fs";
-import path from "node:path";
-import { loadConfig } from "../src/config.js";
-import { loadMcpUrls } from "../src/environment.js";
+import { setupStatus } from "../src/setup.js";
 
-const { config, sources } = loadConfig({ cwd: process.cwd() });
-const urls = loadMcpUrls();
+const status = setupStatus();
 const checks = [
-  ["contacts_mcp", Boolean(urls.contacts)],
-  ["docs_mcp", Boolean(urls.docs)],
-  ["log_mcp", Boolean(urls.log)],
-  ["documents_root", fs.existsSync(config.paths.documents_root)],
-  ["reports_root", fs.existsSync(config.paths.reports_root)],
-  ["documents_readme", fs.existsSync(path.join(config.paths.documents_root, "README.md"))],
-  ["reports_readme", fs.existsSync(path.join(config.paths.reports_root, "README.md"))],
+  ["contacts_mcp", status.mcp.contacts.configured],
+  ["docs_mcp", status.mcp.docs.configured],
+  ["log_mcp", status.mcp.log.configured],
+  ["config", status.configured],
+  ["documents_root", status.paths.documents_root_exists],
+  ["reports_root", status.paths.reports_root_exists],
+  ["documents_readme", status.root_readmes.documents],
+  ["reports_readme", status.root_readmes.reports],
+  ["report_recipients", status.default_report_recipient_count > 0],
 ];
 for (const [name, ok] of checks) console.log(`${ok ? "OK" : "MISSING"}\t${name}`);
-console.log(`project_config\t${sources.project || "none"}`);
-console.log(`user_config\t${sources.user}`);
+console.log(`config_file\t${status.config_file}`);
+for (const file of status.legacy_files) console.log(`LEGACY\t${file} (no longer read; delete after setup)`);
 if (checks.some(([, ok]) => !ok)) process.exitCode = 1;

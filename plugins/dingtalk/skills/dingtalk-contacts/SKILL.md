@@ -9,5 +9,5 @@ Use `dingtalk_contacts_find` to search by name or mobile and fetch organization 
 
 Do not treat a personal DingTalk handle as an organization userId. When multiple people match, present their name, department, manager, and userId and ask the user to select. Never guess a report recipient.
 
-Store only verified organization userIds in `dingtalk.toml`, through the `dingtalk-setup` skill's
+Store only verified organization userIds in the DingTalk configuration (`~/.config/dingtalk/config.toml`), through the `dingtalk-setup` skill's
 `set-recipients` script rather than by editing the file. Do not expose mobile numbers or unrelated profile fields in summaries.

@@ -29,11 +29,10 @@ class FakeUpstream {
 
 function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "dingtalk-workflow-"));
-  fs.mkdirSync(path.join(root, ".git"));
-  fs.mkdirSync(path.join(root, ".claude"));
-  fs.writeFileSync(path.join(root, ".claude", "dingtalk.toml"), `version = 1\n[paths]\ndocuments_root = '${root}/documents'\nreports_root = '${root}/reports'\n[reports.recipients]\nweekly = ['10001']\n`);
+  const env = { DINGTALK_CONFIG: path.join(root, "config.toml") };
+  fs.writeFileSync(env.DINGTALK_CONFIG, `version = 1\n[paths]\ndocuments_root = '${root}/documents'\nreports_root = '${root}/reports'\n[reports.recipients]\nweekly = ['10001']\n`);
   const upstream = new FakeUpstream();
-  const workflow = new DingTalkWorkflow({ upstream, confirmations: new ConfirmationStore() });
+  const workflow = new DingTalkWorkflow({ upstream, confirmations: new ConfirmationStore(), env });
   return { root, upstream, workflow };
 }
 
@@ -41,13 +40,13 @@ test("new document is prepared, created, and bound as managed", async () => {
   const { root, workflow } = fixture();
   const file = path.join(root, "proposal.md");
   fs.writeFileSync(file, "# Proposal\n\nContent\n");
-  const prepared = await workflow.prepareDocumentPush({ file_path: file, cwd: root });
+  const prepared = await workflow.prepareDocumentPush({ file_path: file });
   assert.equal(prepared.ready, true);
   assert.equal(prepared.summary.kind, "document");
   assert.equal(prepared.summary.operation, "create");
   assert.equal(prepared.confirmation_required, true);
   const refreshed = await workflow.prepareDocumentPush({
-    file_path: file, cwd: root, confirmed_fingerprint: prepared.fingerprint,
+    file_path: file, confirmed_fingerprint: prepared.fingerprint,
   });
   assert.equal(refreshed.fingerprint, prepared.fingerprint);
   assert.equal(refreshed.confirmation_required, false);
@@ -59,22 +58,22 @@ test("new document is prepared, created, and bound as managed", async () => {
 test("pulled references cannot push until explicitly adopted", async () => {
   const { root, workflow } = fixture();
   const file = path.join(root, "reference.md");
-  await workflow.pullDocument({ source: "remote-node", output_path: file, cwd: root });
-  const blocked = await workflow.prepareDocumentPush({ file_path: file, cwd: root });
+  await workflow.pullDocument({ source: "remote-node", output_path: file });
+  const blocked = await workflow.prepareDocumentPush({ file_path: file });
   assert.equal(blocked.ready, false);
   assert.match(blocked.blockers[0], /reference/);
   assert.equal(Object.hasOwn(blocked, "token"), false);
   workflow.adoptDocument({ file_path: file, confirmed: true });
-  const prepared = await workflow.prepareDocumentPush({ file_path: file, cwd: root });
+  const prepared = await workflow.prepareDocumentPush({ file_path: file });
   assert.equal(prepared.summary.operation, "update");
 });
 
 test("remote document drift blocks managed pushes", async () => {
   const { root, upstream, workflow } = fixture();
   const file = path.join(root, "reference.md");
-  await workflow.pullDocument({ source: "remote-node", output_path: file, binding: "managed", cwd: root });
+  await workflow.pullDocument({ source: "remote-node", output_path: file, binding: "managed" });
   upstream.remoteBody = "Changed elsewhere";
-  const blocked = await workflow.prepareDocumentPush({ file_path: file, cwd: root });
+  const blocked = await workflow.prepareDocumentPush({ file_path: file });
   assert.equal(blocked.ready, false);
   assert.match(blocked.blockers[0], /远端文档/);
 });
@@ -85,7 +84,7 @@ test("report publication is locked until manual deletion is recorded", async () 
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, "2026-W28.md");
   fs.writeFileSync(file, "# 周报：2026-W28\n\n## 工作事项\n\n完成插件设计。\n");
-  const prepared = await workflow.prepareReportPublish({ file_path: file, cwd: root });
+  const prepared = await workflow.prepareReportPublish({ file_path: file });
   assert.equal(prepared.ready, true);
   assert.deepEqual(prepared.summary.recipients, [{ user_id: "10001", name: "Leader" }]);
   assert.equal(prepared.summary.file, file);
@@ -100,11 +99,11 @@ test("report publication is locked until manual deletion is recorded", async () 
   assert.equal(published.manual_rename_required, true);
   assert.match(published.manual_rename_instruction, /创建人本人，不是任何接收人/);
   assert.match(published.manual_rename_instruction, /创建人姓名的周报/);
-  const blocked = await workflow.prepareReportPublish({ file_path: file, cwd: root });
+  const blocked = await workflow.prepareReportPublish({ file_path: file });
   assert.equal(blocked.ready, false);
   assert.match(blocked.blockers[0], /published/);
   workflow.markReportRemoteDeleted({ file_path: file, report_id: "report-1", user_confirmation: true });
-  const again = await workflow.prepareReportPublish({ file_path: file, cwd: root });
+  const again = await workflow.prepareReportPublish({ file_path: file });
   assert.equal(again.summary.report_type, "weekly");
   assert.equal(readMarkdown(file).data.dingtalk.publication_history.length, 1);
 });
@@ -123,7 +122,7 @@ test("report preparation recognizes DingTalk organization employee details", asy
     success: true,
   };
 
-  const prepared = await workflow.prepareReportPublish({ file_path: file, cwd: root });
+  const prepared = await workflow.prepareReportPublish({ file_path: file });
 
   assert.equal(prepared.ready, true);
   assert.deepEqual(prepared.summary.recipients, [{ user_id: "10001", name: "刘洋" }]);
@@ -135,7 +134,7 @@ test("published report edits are detected", async () => {
   fs.mkdirSync(dir);
   const file = path.join(dir, "x.md");
   fs.writeFileSync(file, "# 周报\n\nBody\n");
-  const prepared = await workflow.prepareReportPublish({ file_path: file, cwd: root });
+  const prepared = await workflow.prepareReportPublish({ file_path: file });
   await workflow.publishReport({ file_path: file, confirmation_token: prepared.token });
   fs.appendFileSync(file, "\nChanged\n");
   assert.equal(workflow.reportStatus({ file_path: file }).status, "modified_after_publish");
@@ -159,7 +158,6 @@ test("all report types publish their Markdown body through the blank-log templat
     const prepared = await workflow.prepareReportPublish({
       file_path: file,
       recipients: ["10001"],
-      cwd: root,
     });
     assert.equal(prepared.summary.report_type, type);
     assert.equal(prepared.summary.report_label, label);
@@ -197,7 +195,7 @@ test("report preparation returns a blocker when no recipients are configured", a
   const file = path.join(dir, "2026-07-16.md");
   fs.writeFileSync(file, "# 日报：2026-07-16\n\n完成测试。\n");
 
-  const prepared = await workflow.prepareReportPublish({ file_path: file, recipients: [], cwd: root });
+  const prepared = await workflow.prepareReportPublish({ file_path: file, recipients: [] });
 
   assert.equal(prepared.ready, false);
   assert.match(prepared.blockers[0], /没有可用的已配置接收人/);
@@ -210,11 +208,21 @@ test("a changed draft invalidates its prepared confirmation", async () => {
   fs.mkdirSync(dir);
   const file = path.join(dir, "changed.md");
   fs.writeFileSync(file, "# 周报\n\nOriginal\n");
-  const prepared = await workflow.prepareReportPublish({ file_path: file, cwd: root });
+  const prepared = await workflow.prepareReportPublish({ file_path: file });
   fs.appendFileSync(file, "\nChanged\n");
 
   await assert.rejects(
     () => workflow.publishReport({ file_path: file, confirmation_token: prepared.token }),
     /changed after preparation/,
   );
+});
+
+test("pull without output_path asks for setup when no directory is configured", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "dingtalk-unconfigured-"));
+  const env = { DINGTALK_CONFIG: path.join(root, "missing.toml") };
+  const workflow = new DingTalkWorkflow({ upstream: new FakeUpstream(), confirmations: new ConfirmationStore(), env });
+  await assert.rejects(workflow.pullDocument({ source: "remote-node" }), /dingtalk-setup/);
+  const file = path.join(root, "explicit.md");
+  await workflow.pullDocument({ source: "remote-node", output_path: file });
+  assert.ok(fs.existsSync(file));
 });
