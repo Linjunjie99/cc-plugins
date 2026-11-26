@@ -20,7 +20,8 @@ assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
-HOME = "/Users/me"
+HOME = "/Users/me"  # portability: allow (fixture home)
+WSL_HOME = "/home/dev"  # portability: allow (fixture home)
 
 
 class DetectPlatformTest(unittest.TestCase):
@@ -33,13 +34,40 @@ class DetectPlatformTest(unittest.TestCase):
 
 
 class ClassifyMacosTest(unittest.TestCase):
-    def owner(self, path: str, real: str | None = None) -> str:
-        return MODULE.classify(path, real or path, "macos", HOME)
+    def owner(self, path: str, real: str | None = None, prefix: str = "/opt/homebrew") -> str:
+        return MODULE.classify(path, real or path, "macos", HOME, prefix)
 
     def test_homebrew(self) -> None:
         self.assertEqual(
             self.owner("/opt/homebrew/bin/node", "/opt/homebrew/Cellar/node/26.13.1/bin/node"),
             "homebrew",
+        )
+
+    def test_intel_prefix(self) -> None:
+        self.assertEqual(
+            self.owner("/usr/local/bin/node", "/usr/local/Cellar/node/26.13.1/bin/node", "/usr/local"),
+            "homebrew",
+        )
+        self.assertEqual(
+            self.owner("/usr/local/bin/brew", "/usr/local/Homebrew/bin/brew", "/usr/local"), "homebrew"
+        )
+        # On Intel, /usr/local is shared: a file outside Homebrew's trees is not Homebrew's.
+        self.assertEqual(self.owner("/usr/local/bin/thing", prefix="/usr/local"), "unmanaged")
+
+    def test_brew_itself_on_apple_silicon(self) -> None:
+        self.assertEqual(self.owner("/opt/homebrew/bin/brew"), "homebrew")
+
+    def test_npm_bundled_versus_global_packages(self) -> None:
+        modules = "/opt/homebrew/lib/node_modules"
+        self.assertEqual(self.owner("/opt/homebrew/bin/npm", f"{modules}/npm/bin/npm-cli.js"), "homebrew")
+        self.assertEqual(
+            self.owner("/opt/homebrew/bin/tsc", f"{modules}/typescript/bin/tsc"), "npm-global"
+        )
+
+    def test_without_homebrew_nothing_is_homebrew(self) -> None:
+        self.assertEqual(
+            self.owner("/opt/homebrew/bin/node", "/opt/homebrew/Cellar/node/1/bin/node", None),
+            "unmanaged",
         )
 
     def test_system_and_clt(self) -> None:
@@ -90,7 +118,7 @@ class ClassifyMacosTest(unittest.TestCase):
 
 class ClassifyWslTest(unittest.TestCase):
     def owner(self, path: str, real: str | None = None) -> str:
-        return MODULE.classify(path, real or path, "wsl", "/root")
+        return MODULE.classify(path, real or path, "wsl", WSL_HOME)
 
     def test_owners(self) -> None:
         self.assertEqual(self.owner("/usr/bin/node"), "apt")
@@ -102,7 +130,8 @@ class ClassifyWslTest(unittest.TestCase):
             "npm-global",
         )
         self.assertEqual(
-            self.owner("/root/.local/bin/uv", "/root/.local/share/pipx/venvs/uv/bin/uv"), "pipx"
+            self.owner(f"{WSL_HOME}/.local/bin/uv", f"{WSL_HOME}/.local/share/pipx/venvs/uv/bin/uv"),
+            "pipx",
         )
         self.assertEqual(self.owner("/mnt/c/Windows/system32/cmd.exe"), "windows")
 

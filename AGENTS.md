@@ -46,6 +46,28 @@ marketplaces are meant to be installed on the same machine at once.
   fail at runtime.
 - Files a skill only reads may use relative links from the skill directory.
 
+## Portability Rules
+
+Plugins and repository docs must work on any machine and for any user. A
+change that only works for one user name, home directory, operating system, or
+Homebrew prefix is a bug.
+
+- Never hard-code an absolute home path. Use `~` or `$HOME` in docs, and
+  `Path.home()` / `os.homedir()` in code.
+- Never ship a machine-specific default, such as a company directory, a proxy
+  port, or a local tool path. When a value differs per machine, read it from
+  user configuration written by a setup step, and fail with a pointer to that
+  setup when it is missing.
+- Resolve tool locations at runtime (`brew --prefix`, `command -v`) instead of
+  assuming `/opt/homebrew`, `/usr/local`, or `/root`.
+- Keep machine-local configuration outside the repository, so it never needs
+  a `.gitignore` entry and survives reinstalls.
+- Tests must not read or write real user configuration; point them at
+  temporary files.
+- `python3 scripts/check_portability.py` scans tracked files for absolute home
+  paths. Mark a line `portability: allow` only when the absolute path is
+  itself the subject, such as a test fixture.
+
 ## Multi-Harness Rules
 
 This machine runs both Claude Code and Codex, and a repository may be worked on
@@ -74,9 +96,11 @@ claude plugin validate .
 claude plugin validate plugins/<plugin-name>
 ```
 
-Run plugin tests where they exist:
+Run the repository and plugin tests:
 
 ```bash
+python3 scripts/check_portability.py
+python3 -m unittest discover -s tests -v
 for p in dev-env engineering-governance; do
   (cd plugins/$p && python3 -m unittest discover -s tests -v)
 done
@@ -116,7 +140,8 @@ filesystem validation and unit tests.
 Before release:
 
 - Set the intended semantic version in `.claude-plugin/plugin.json`.
-- Run plugin validation, marketplace validation, and plugin tests.
+- Run plugin validation, marketplace validation, plugin tests, and
+  `python3 scripts/check_portability.py`.
 - Run `git diff --check` and review the staged diff.
 - Verify no tokens, credential-bearing URLs, `.env` files, or local user
   configuration are included.

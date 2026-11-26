@@ -93,6 +93,8 @@ follow [CLAUDE.md](CLAUDE.md).
 ## Repository Layout
 
 ```text
+scripts/check_portability.py
+tests/
 .claude-plugin/marketplace.json
 CLAUDE.md
 DEVELOPMENT.md

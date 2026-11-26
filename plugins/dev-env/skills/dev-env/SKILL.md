@@ -1,6 +1,6 @@
 ---
 name: dev-env
-description: Configure, maintain, and diagnose the personal development environment on macOS (Apple Silicon, Homebrew) or root-only Ubuntu WSL. Use for installing or upgrading tools, choosing package and runtime owners, managing Homebrew, apt, Node.js, npm, uv, pipx, Docker or Colima, domestic mirrors and proxy use, project dependencies, PATH and shell profile configuration, duplicate executables, or environment health checks.
+description: Configure, maintain, and diagnose the personal development environment on macOS (Homebrew) or Ubuntu WSL. Use for installing or upgrading tools, choosing package and runtime owners, managing Homebrew, apt, Node.js, npm, uv, pipx, Docker or Colima, domestic mirrors and proxy use, project dependencies, PATH and shell profile configuration, duplicate executables, or environment health checks.
 allowed-tools:
   - Read
   - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/skills/dev-env/scripts/check_env.py" *)

@@ -51,7 +51,31 @@ def detect_platform(system: Optional[str] = None, proc_version: Optional[str] = 
     return system.lower()
 
 
-def classify(path: str, real: str, plat: str, home: str) -> str:
+# Default Homebrew prefixes: Apple Silicon, then Intel.
+HOMEBREW_PREFIXES = ("/opt/homebrew", "/usr/local")
+# Packages bundled with Homebrew's node formula rather than installed by npm.
+NODE_BUNDLED = ("npm", "corepack")
+
+
+def detect_brew_prefix(path_value: str) -> Optional[str]:
+    """Return the Homebrew prefix in use, or None when Homebrew is absent."""
+    candidates = [os.path.join(p, "brew") for p in path_entries(path_value)]
+    candidates += [os.path.join(p, "bin", "brew") for p in HOMEBREW_PREFIXES]
+    for brew in candidates:
+        if os.path.isfile(brew) and os.access(brew, os.X_OK):
+            try:
+                out = subprocess.run([brew, "--prefix"], capture_output=True, text=True,
+                                     timeout=10, stdin=subprocess.DEVNULL)
+            except (OSError, subprocess.TimeoutExpired):
+                continue
+            prefix = out.stdout.strip()
+            if out.returncode == 0 and prefix:
+                return prefix
+    return None
+
+
+def classify(path: str, real: str, plat: str, home: str,
+             brew_prefix: Optional[str] = None) -> str:
     """Infer the owning manager from where an executable lives."""
     home = home.rstrip("/")
 
@@ -74,8 +98,17 @@ def classify(path: str, real: str, plat: str, home: str) -> str:
         return "project-venv"
 
     if plat == "macos":
-        if under(real, "/opt/homebrew") or under(path, "/opt/homebrew"):
-            return "homebrew"
+        if brew_prefix:
+            bp = brew_prefix.rstrip("/")
+            modules = bp + "/lib/node_modules"
+            if under(real, modules):
+                package = real[len(modules) + 1:].split("/", 1)[0]
+                return "homebrew" if package in NODE_BUNDLED else "npm-global"
+            # Cellar, Caskroom, opt, and the brew repository are Homebrew's on
+            # both prefixes; on Intel the rest of /usr/local is not.
+            if under(real, bp + "/Cellar", bp + "/Caskroom", bp + "/opt", bp + "/Homebrew") \
+                    or real == bp + "/bin/brew":
+                return "homebrew"
         if under(real, "/Library/Developer/CommandLineTools", "/Applications/Xcode.app"):
             return "xcode-clt"
         if under(path, "/usr/bin", "/bin", "/usr/sbin", "/sbin", "/System"):
@@ -137,14 +170,14 @@ def version_of(path: str, command: str) -> str:
 
 
 def inspect(commands: Sequence[str], plat: str, home: str, path_value: str,
-            with_versions: bool = True) -> Dict[str, object]:
+            with_versions: bool = True, brew_prefix: Optional[str] = None) -> Dict[str, object]:
     entries = path_entries(path_value)
     results, problems = [], []
     for command in commands:
         matches = []
         for path in find_all(command, entries):
             real = os.path.realpath(path)
-            matches.append({"path": path, "real": real, "owner": classify(path, real, plat, home)})
+            matches.append({"path": path, "real": real, "owner": classify(path, real, plat, home, brew_prefix)})
         item: Dict[str, object] = {"command": command, "matches": matches}
         if matches:
             active = matches[0]
@@ -171,6 +204,7 @@ def inspect(commands: Sequence[str], plat: str, home: str, path_value: str,
         "problems": problems,
     }
     if plat == "macos":
+        report["brew_prefix"] = brew_prefix
         report["mirrors"] = {k: os.environ.get(k, "") for k in (
             "HOMEBREW_API_DOMAIN", "HOMEBREW_BOTTLE_DOMAIN", "HOMEBREW_BREW_GIT_REMOTE",
         )}
@@ -191,6 +225,8 @@ def render(report: Dict[str, object]) -> str:
             lines.append(f"  {'':<8} {'':<17} -> {first['real']}")
         for extra in matches[1:]:
             lines.append(f"  {'':<8} {'(also) ' + extra['owner']:<17} {extra['path']}")
+    if report.get("platform") == "macos":
+        lines += ["", f"homebrew prefix: {report.get('brew_prefix') or '(not installed)'}"]
     if "mirrors" in report:
         lines += ["", "homebrew mirrors:"]
         for key, value in report["mirrors"].items():  # type: ignore[union-attr]
@@ -210,9 +246,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     plat = detect_platform()
+    path_value = os.environ.get("PATH", "")
     commands = args.commands or (MACOS_COMMANDS if plat == "macos" else WSL_COMMANDS)
-    report = inspect(commands, plat, str(Path.home()), os.environ.get("PATH", ""),
-                     with_versions=not args.no_versions)
+    brew_prefix = detect_brew_prefix(path_value) if plat == "macos" else None
+    report = inspect(commands, plat, str(Path.home()), path_value,
+                     with_versions=not args.no_versions, brew_prefix=brew_prefix)
     print(json.dumps(report, indent=2) if args.json else render(report))
     return 1 if report["problems"] else 0
 

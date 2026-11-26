@@ -66,15 +66,20 @@ claude plugin validate .
 claude plugin validate plugins/<plugin-name>
 ```
 
-For `plugins/dev-env` and `plugins/engineering-governance`, also run their
-tests. They read the working
-tree directly and do not require reinstalling the plugin:
+Run the portability check and the Python tests. They read the working tree
+directly and do not require reinstalling the plugin:
 
 ```bash
+python3 scripts/check_portability.py
+python3 -m unittest discover -s tests -v
 for p in dev-env engineering-governance; do
   (cd plugins/$p && python3 -m unittest discover -s tests -v)
 done
 ```
+
+The portability check fails on absolute home paths, such as a macOS, Linux,
+or root home directory, in tracked files. See "Portability Rules" in
+`AGENTS.md`.
 
 Scripts and tests must run on the stock macOS `/usr/bin/python3` (3.9), so
 they use only the standard library and `from __future__ import annotations`.
@@ -186,7 +191,9 @@ Release checks:
 ```bash
 claude plugin validate .
 claude plugin validate plugins/<plugin-name>
-cd plugins/engineering-governance && python3 -m unittest discover -s tests && cd ../..
+python3 scripts/check_portability.py
+python3 -m unittest discover -s tests
+for p in dev-env engineering-governance; do (cd plugins/$p && python3 -m unittest discover -s tests); done
 cd plugins/dingtalk && npm test && npm run build && npm run check && cd ../..
 git diff --check
 git status --short
@@ -224,8 +231,9 @@ The one place the two genuinely interact is the context files that
 `engineering-governance` maintains. Those rules are documented in the
 [README](README.md) and enforced inside the skills themselves.
 
-## Windows And WSL Boundary
+## Machine Boundaries
 
-Register local marketplaces from the environment that can resolve their paths.
-A Windows local path is not a WSL local path. Use a Git marketplace when the
-same published source must work across environments.
+Register a local marketplace from the environment that will use it, so the
+stored path is native there. A Windows path is not a WSL path, and a path on
+one machine means nothing on another. Use the Git marketplace when the same
+published source must work across machines or environments.

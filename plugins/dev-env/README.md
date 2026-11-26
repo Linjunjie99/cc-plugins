@@ -1,8 +1,8 @@
 # dev-env
 
 Keep a personal development environment organized by clear tool ownership,
-canonical paths, and on-demand installs. Supports macOS on Apple Silicon and
-root-only Ubuntu WSL.
+canonical paths, and on-demand installs. Supports macOS (Apple Silicon or
+Intel) and Ubuntu WSL, for any user name.
 
 ## What It Does
 
@@ -16,7 +16,7 @@ The skill detects the platform and loads one reference:
 
 | Layer | macOS | Ubuntu WSL |
 | --- | --- | --- |
-| System and CLI tools | Homebrew (`/opt/homebrew`) | apt |
+| System and CLI tools | Homebrew (`brew --prefix`) | apt |
 | Node.js, npm | Homebrew `node` | apt/NodeSource `nodejs` |
 | Global Node CLIs | npm, Homebrew prefix | npm, `/usr/local` |
 | uv | Homebrew | pipx |
@@ -24,7 +24,7 @@ The skill detects the platform and loads one reference:
 | Global Python CLIs | `uv tool` | pipx |
 | Claude Code, Codex CLI | Their native installers | Global npm |
 | Containers, on demand | Colima + Docker CLI | Docker Engine |
-| Package mirrors | USTC / npmmirror, proxy only when needed | Not configured |
+| Package mirrors | Domestic mirrors when the upstream is slow; proxy otherwise | Not configured |
 
 See [references/macos.md](skills/dev-env/references/macos.md) and
 [references/wsl.md](skills/dev-env/references/wsl.md) for the full rules.
@@ -61,7 +61,7 @@ python3 -m unittest discover -s tests -v
 
 ## Codex Counterpart
 
-`dev-env@codex-plugins` is the WSL capability for the Codex CLI. This plugin
+`dev-env@codex-plugins` is the same capability for the Codex CLI. This plugin
 writes no persistent configuration of its own; when it edits shell profiles
 on request, it touches only its fenced `# >>> dev-env >>>` block and leaves
 other installers' blocks alone, so the two do not contend.
