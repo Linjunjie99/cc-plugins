@@ -10,8 +10,8 @@ rather than emulating the other.
 
 ## Plugins
 
-- `dev-env`: keeps tools, runtimes, package ownership, and PATH organized in
-  the personal Ubuntu WSL environment.
+- `dev-env`: keeps tools, runtimes, package ownership, mirrors, and PATH
+  organized in the personal macOS or Ubuntu WSL environment.
 - `engineering-governance`: establishes a durable context architecture for
   workspace navigation, project instructions, current status, active plans,
   and long-lived documentation.
@@ -26,7 +26,7 @@ rather than emulating the other.
 Register the marketplace and install the plugins:
 
 ```bash
-claude plugin marketplace add /root/workspace/20_personal/projects/cc-plugins
+claude plugin marketplace add <path-to>/cc-plugins
 claude plugin install dev-env@cc-plugins
 claude plugin install engineering-governance@cc-plugins
 claude plugin install dingtalk@cc-plugins
@@ -97,7 +97,8 @@ follow [CLAUDE.md](CLAUDE.md).
 CLAUDE.md
 DEVELOPMENT.md
 plugins/dev-env/.claude-plugin/plugin.json
-plugins/dev-env/skills/dev-env/SKILL.md
+plugins/dev-env/skills/dev-env/{SKILL.md,references/,scripts/}
+plugins/dev-env/tests/
 plugins/dingtalk/.claude-plugin/plugin.json
 plugins/dingtalk/.mcp.json
 plugins/dingtalk/dist/

@@ -1,54 +1,75 @@
 ---
 name: dev-env
-description: Configure, maintain, and diagnose the personal root-only Ubuntu WSL development environment under /root. Use for installing or upgrading tools, choosing package and runtime owners, managing apt, NodeSource, npm, uv, pipx, Docker, project dependencies, PATH configuration, duplicate executables, or environment health checks.
+description: Configure, maintain, and diagnose the personal development environment on macOS (Apple Silicon, Homebrew) or root-only Ubuntu WSL. Use for installing or upgrading tools, choosing package and runtime owners, managing Homebrew, apt, Node.js, npm, uv, pipx, Docker or Colima, domestic mirrors and proxy use, project dependencies, PATH and shell profile configuration, duplicate executables, or environment health checks.
+allowed-tools:
+  - Read
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/skills/dev-env/scripts/check_env.py" *)
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/skills/dev-env/scripts/check_env.py")
 ---
 
 # Dev Environment
 
-Manage this personal Ubuntu WSL environment with one owner and one canonical location for each class of software. Assume the active Linux user is `root` and the home directory is `/root`.
+Keep the personal development environment organized with one owner and one
+canonical location for each class of software. The environment mainly serves
+agent-driven development, so it stays CLI-first, lightweight, and installed on
+demand.
+
+## Identify The Platform First
+
+Run `uname -s`, or the check script below, and then read exactly one platform
+reference before acting:
+
+| Platform | Signal | Reference |
+| --- | --- | --- |
+| macOS | `Darwin` | [references/macos.md](references/macos.md) |
+| Ubuntu WSL | `Linux` with `microsoft` in `/proc/version` | [references/wsl.md](references/wsl.md) |
+
+The platform reference holds the ownership matrix, install commands, mirror
+and PATH rules, and verification for that machine. Never apply one platform's
+commands on the other: no `apt` on macOS, no Homebrew in WSL.
 
 ## Management Framework
 
-1. Read the task and project conventions before changing the environment.
-2. Inspect the active executable, version, PATH, and current package owner.
-3. Choose the canonical owner and location from the ownership matrix.
-4. Install only what the task needs. Do not introduce large stacks or another runtime manager speculatively.
-5. Keep system, global CLI, project, and service dependencies in their own layers.
+1. Read the task and the project's conventions before changing the environment.
+2. Inspect the active executable, its version, PATH, and current owner.
+3. Choose the canonical owner and location from the platform ownership matrix.
+4. Install only what the task needs. Do not install large stacks, GUI apps, or
+   another runtime manager speculatively.
+5. Keep the system, global CLI, project, and service layers separate.
 6. Verify the selected executable, version, owner, and PATH after a change.
-7. Explain which manager owns every newly installed or migrated tool.
+7. State which manager owns every newly installed or migrated tool.
 
-Prefer correcting ownership and PATH over blindly reinstalling. Keep foundational build dependencies that installed tools or native package builds naturally require.
+Prefer correcting ownership and PATH over blindly reinstalling. Keep
+foundational build dependencies that installed tools or native package builds
+naturally require.
 
-## Ownership Matrix
+## Layering Principles
 
-| Software | Owner | Canonical location |
-| --- | --- | --- |
-| OS tools and libraries | apt | `/usr`, `/lib` |
-| Node.js, npm, npx, corepack | apt/NodeSource `nodejs` | `/usr/bin`, `/usr/lib/node_modules` |
-| Selected global Node CLIs | npm | `/usr/local/bin`, `/usr/local/lib/node_modules` |
-| Project Node dependencies | Project package manager | `<project>/node_modules` |
-| Project Python runtime and dependencies | uv | `<project>/.venv`, `<project>/uv.lock` |
-| Global Python CLIs | pipx | `/root/.local/bin`, `/root/.local/share/pipx` |
-| Isolated services | Docker | Docker-managed storage |
+These hold on every platform. The platform reference names the concrete owner.
 
-Do not manage the same executable through multiple owners. Do not remove a system path until its owner has been identified.
+- **System layer**: one system package manager owns OS-level CLI tools and
+  libraries. Prefer a CLI package over a GUI app when both exist.
+- **Node layer**: one package manager owns Node.js, npm, npx, and corepack.
+  Global npm installs are reserved for a few CLIs with no better owner; project
+  dependencies stay in `<project>/node_modules`. Do not `npm install -g npm`.
+  Introduce a Node version manager only when a project needs multiple Node
+  majors at once.
+- **Python layer**: leave the system `python3` alone and never install project
+  dependencies with system `pip`. uv owns project Python versions, `.venv`,
+  dependency resolution, and `uv.lock`. Do not introduce Conda, pyenv, or
+  another environment manager.
+- **Service layer**: databases, queues, and complex or reproducible stacks run
+  in containers, never in the system or project runtimes. Install the
+  container runtime only when a task needs one.
+- **Agent CLIs**: Claude Code and the Codex CLI each keep the installer that
+  installed them. Neither manages the other, and neither is reinstalled through
+  a second owner.
 
-## System Layer
+## Python Projects
 
-Use apt for OS tools, stable command-line utilities, Docker Engine and Compose, and foundational build tools.
-
-```bash
-apt-get update
-apt-get install -y <packages>
-```
-
-Do not replace apt-managed components with ad hoc binaries. Do not remove compilers or build packages merely because they are not directly invoked by the current project.
-
-## Python Layer
-
-Keep `/usr/bin/python3` and `/usr/bin/pip3` under apt ownership. Do not install project dependencies with system `pip3`. Keep `uv` as a global isolated CLI under pipx ownership, and use it to manage project Python versions, virtual environments, dependency resolution, and lock files.
-
-For a Python project, read `pyproject.toml`, `uv.lock`, `.python-version`, and the repository guidance before changing the environment. Use one project-local `.venv`; do not create a second environment for the same checkout. Prefer the repository's locked workflow:
+For a Python project, read `pyproject.toml`, `uv.lock`, `.python-version`, and
+the repository guidance before changing anything. Use one project-local
+`.venv`; do not create a second environment for the same checkout.
 
 ```bash
 uv python install <required-version>
@@ -57,78 +78,65 @@ uv run python --version
 uv run <project-command>
 ```
 
-Run `uv lock` after changing project dependencies and include `uv.lock` in the same source change. Use `uv sync --all-packages` for a uv workspace when the project defines one. Activating `.venv` is optional; prefer `uv run` in documentation and automation so commands consistently select the project environment.
+Run `uv lock` after changing project dependencies and commit `uv.lock` in the
+same change. Use `uv sync --all-packages` for a uv workspace. Prefer `uv run`
+over activating `.venv` in documentation and automation. For a legacy project
+without `pyproject.toml`, create `.venv` with `uv venv` and install its reviewed
+requirements with `uv pip`. Use `uvx` for one-off Python tools.
 
-For a legacy project without `pyproject.toml`, create `.venv` with `uv venv` and install its reviewed requirements with `uv pip`. Do not introduce Conda or another Python environment manager. Install required native libraries with apt when they are OS dependencies; use Docker for complex services and reproducible CUDA or system-library stacks. Use pipx for global Python CLIs and `uvx` for one-off isolated Python tools.
+## Lockfiles And Mirrors
 
-## Node Layer
-
-Keep Node.js, npm, npx, and corepack in the NodeSource apt `nodejs` package. Upgrade the runtime with apt. Do not install npm separately, run `npm install -g npm`, create another Node tree, or manually remove system npm files.
-
-Keep Linux-side global npm CLIs under the single `/usr/local` prefix. Use project-local dependencies for applications and frontends.
-
-```bash
-npm prefix -g
-npm --prefix /usr/local install --global <package>@<version>
-```
-
-Agent CLIs are global npm packages under `/usr/local`: Claude Code is `@anthropic-ai/claude-code` and the Codex CLI is `@openai/codex`. Both are installed side by side and neither owns the other's configuration. After upgrading Node.js, confirm that npm still uses that prefix before installing or upgrading global CLIs.
-
-Introduce a Node version manager only when a project genuinely needs multiple Node versions. If introducing one, review the absolute npm prefix in `/root/.npmrc` because version managers normally maintain separate global package trees.
-
-## Service Layer
-
-Use Docker for databases, queues, application dependencies, and complex or reproducible services. Keep service dependencies out of system and project runtimes. Docker runs directly in this root-only WSL environment with systemd enabled.
+A package mirror can leak into committed lockfiles. After `npm install` or
+`uv lock` in a repository whose lockfile is shared or published, check the
+diff for mirror hosts (`npmmirror`, `mirrors.ustc.edu.cn`, `tuna`) replacing
+the canonical registry. If the project must keep canonical URLs, put a
+project-level `.npmrc` or `[[tool.uv.index]]` override in that repository
+rather than editing the global configuration.
 
 ## Resolve Conflicts
 
-When a command behaves unexpectedly, inspect resolution before changing installations:
+When a command behaves unexpectedly, inspect resolution before changing
+installations:
 
 ```bash
 type -a <command>
 <command> --version
-echo "$PATH"
+echo "$PATH" | tr ':' '\n'
 uv python find
 uv run python -c 'import sys; print(sys.executable); print(sys.prefix)'
 ```
 
-Use the relevant package manager to establish ownership. For files under `/usr`, check `dpkg -S <path>` before removal. For npm conflicts, inspect both global prefixes:
+Identify the owner through its package manager before removing anything.
+Migrate a duplicate to its canonical owner before uninstalling the old copy.
+When a stray executable has no owner, move it to a backup location rather than
+deleting it, and tell the user where it went.
 
-```bash
-npm --prefix /usr/local list --global --depth=0
-npm --prefix /usr list --global --depth=0
-```
-
-Migrate a user-installed duplicate to its canonical location before uninstalling the old copy. Never uninstall a path owned by apt.
-
-Persistent shell configuration must add each directory at most once. Keep `/root/.local/bin` for pipx and rely on the system PATH for `/usr/local/bin` and `/usr/bin`. Do not persist temporary agent-CLI vendor or wrapper paths.
-
-WSL normally appends Windows PATH entries for interoperability. When tracing an unexpected command or path, remember that entries under `/mnt/c/...` may come from Windows-side configuration and should be investigated there.
+Persistent shell configuration adds each directory at most once. Do not
+persist temporary agent-CLI vendor or wrapper paths.
 
 ## Scope Boundaries
 
-- Do not proactively install CUDA, ML frameworks, mobile SDKs, databases, large toolchains, or app-specific stacks.
-- Do not introduce another Python runtime manager when uv can satisfy the project.
+- Do not proactively install CUDA, ML frameworks, mobile SDKs, databases,
+  container runtimes, large toolchains, or app-specific stacks.
+- Do not edit persistent shell profiles, registry, or mirror configuration
+  unless the task is about the environment itself.
+- Do not persist proxy variables. Use a proxy per command or per shell.
 - Keep edits scoped to the current task and project conventions.
-- Use bash in WSL, `rg` for text search, and `fd` or `fdfind` for file search.
+- Use `rg` for text search and `fd` (`fdfind` on Ubuntu) for file search.
 
 ## Environment Check
 
-Run the relevant parts of this check after changing Node.js, npm, uv, a project Python environment, or persistent PATH configuration:
+Run the bundled read-only check after changing a runtime, a package manager,
+mirror configuration, or PATH, and when diagnosing a conflict:
 
 ```bash
-type -a node npm npx claude codex happy python3 pipx uv
-node --version
-npm --version
-npm prefix -g
-npm --prefix /usr/local list --global --depth=0
-npm --prefix /usr list --global --depth=0
-readlink -f "$(command -v claude)"
-readlink -f "$(command -v codex)"
-pipx list
-uv --version
-uv python find
-uv run python -c 'import sys; print(sys.executable); print(sys.prefix)'
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/dev-env/scripts/check_env.py"
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/dev-env/scripts/check_env.py" node npm uv
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/dev-env/scripts/check_env.py" --json
 ```
 
-The environment is organized when system Node tools resolve from `/usr`, selected npm CLIs from `/usr/local`, pipx applications from `/root/.local/bin`, and project Python commands resolve through uv to the checkout's `.venv`. Report missing optional commands separately from ownership conflicts.
+It lists every PATH match for each command with its inferred owner and
+version, and flags executables with no known owner, a command shadowed by a
+second managed copy, and repeated PATH entries. It exits non-zero when it
+finds a problem. Report missing optional commands separately from ownership
+conflicts. Then run the platform-specific checks in the platform reference.

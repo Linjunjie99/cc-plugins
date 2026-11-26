@@ -77,9 +77,9 @@ claude plugin validate plugins/<plugin-name>
 Run plugin tests where they exist:
 
 ```bash
-cd plugins/engineering-governance
-python3 -m unittest discover -s tests -v
-cd ../..
+for p in dev-env engineering-governance; do
+  (cd plugins/$p && python3 -m unittest discover -s tests -v)
+done
 ```
 
 For `plugins/dingtalk`, which runs from a bundled `dist/`:

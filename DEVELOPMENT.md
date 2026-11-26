@@ -44,11 +44,13 @@ git switch -c feature/<plugin>-<change>
 ```
 
 If `cc-plugins` is currently registered from GitHub, switch it to the local
-checkout. Run these commands from WSL so the stored path is a WSL path:
+checkout. Run these commands from the environment that will use the
+marketplace, so the stored path is native to it (a WSL path in WSL, a macOS
+path on macOS):
 
 ```bash
 claude plugin marketplace remove cc-plugins
-claude plugin marketplace add /root/workspace/20_personal/projects/cc-plugins
+claude plugin marketplace add <path-to>/cc-plugins
 claude plugin install <plugin-name>@cc-plugins
 ```
 
@@ -64,14 +66,18 @@ claude plugin validate .
 claude plugin validate plugins/<plugin-name>
 ```
 
-For `plugins/engineering-governance`, also run its tests. They read the working
+For `plugins/dev-env` and `plugins/engineering-governance`, also run their
+tests. They read the working
 tree directly and do not require reinstalling the plugin:
 
 ```bash
-cd plugins/engineering-governance
-python3 -m unittest discover -s tests -v
-cd ../..
+for p in dev-env engineering-governance; do
+  (cd plugins/$p && python3 -m unittest discover -s tests -v)
+done
 ```
+
+Scripts and tests must run on the stock macOS `/usr/bin/python3` (3.9), so
+they use only the standard library and `from __future__ import annotations`.
 
 For `plugins/dingtalk`, install dependencies, test, and rebuild the committed
 bundle. The installed plugin runs `dist/`, not `src/`:

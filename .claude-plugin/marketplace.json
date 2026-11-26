@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "dev-env",
-      "description": "Keep a personal Ubuntu WSL development environment organized by clear tool ownership and canonical paths.",
+      "description": "Keep a personal macOS or Ubuntu WSL development environment organized by clear tool ownership, canonical paths, and on-demand installs.",
       "author": {
         "name": "TU"
       },
