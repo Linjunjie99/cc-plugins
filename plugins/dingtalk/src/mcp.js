@@ -61,9 +61,9 @@ function result(value, render) {
   return { content: [{ type: "text", text }], structuredContent: value };
 }
 
-export function createDingTalkServer({ upstream, confirmations = new ConfirmationStore() }) {
-  const workflow = new DingTalkWorkflow({ upstream, confirmations });
-  const server = new McpServer({ name: "dingtalk", version: "0.1.0" });
+export function createDingTalkServer({ upstream, confirmations = new ConfirmationStore(), env = process.env }) {
+  const workflow = new DingTalkWorkflow({ upstream, confirmations, env });
+  const server = new McpServer({ name: "dingtalk", version: "0.2.0" });
 
   function tool(name, description, inputSchema, handler, { readOnly = false, destructive = false, render } = {}) {
     server.registerTool(name, {
@@ -73,20 +73,18 @@ export function createDingTalkServer({ upstream, confirmations = new Confirmatio
     }, async (args) => result(await handler(args), render));
   }
 
-  const cwd = z.string().optional().describe("Working directory used to discover .claude/dingtalk.toml");
   const filePath = z.string().describe("Absolute or current-directory-relative local Markdown path");
 
   tool("dingtalk_docs_pull", "Pull a DingTalk online document into a new local Markdown file. Pulled files are reference-only unless binding=managed is explicitly chosen.", {
     source: z.string().describe("DingTalk document nodeId or URL"),
     output_path: z.string().optional(),
-    binding: z.enum(["reference", "managed"]).default("reference"), cwd,
+    binding: z.enum(["reference", "managed"]).default("reference"),
   }, (args) => workflow.pullDocument(args));
 
   tool("dingtalk_docs_prepare_push", "Review a completed local Markdown draft after creation or revision. Resolve and validate its DingTalk create/update target, then return the complete user-facing sync summary and a short-lived confirmation token. This never writes to DingTalk.", {
     file_path: filePath, workspace_id: z.string().optional(), folder_id: z.string().optional(),
     rename_remote: z.boolean().default(false),
     confirmed_fingerprint: z.string().optional().describe("Fingerprint of a summary the user already confirmed; used only to refresh an expired token"),
-    cwd,
   }, (args) => workflow.prepareDocumentPush(args), { readOnly: true, render: prepareText });
 
   tool("dingtalk_docs_push", "Create or update the prepared DingTalk document and atomically record its binding in local front matter.", {
@@ -102,13 +100,12 @@ export function createDingTalkServer({ upstream, confirmations = new Confirmatio
   }, (args) => workflow.documentStatus(args), { readOnly: true });
 
   tool("dingtalk_reports_pull", "Pull a DingTalk report into a local read-only archive file for reference and summarization.", {
-    report_id: z.string(), output_path: z.string().optional(), cwd,
+    report_id: z.string(), output_path: z.string().optional(),
   }, (args) => workflow.pullReport(args));
 
   tool("dingtalk_reports_prepare_publish", "Review a completed local report after creation or revision. Resolve and verify its effective recipients and DingTalk blank-log template, then return the complete user-facing publication summary and a short-lived confirmation token. This never sends a report.", {
     file_path: filePath, recipients: z.array(z.string()).optional(),
     confirmed_fingerprint: z.string().optional().describe("Fingerprint of a summary the user already confirmed; used only to refresh an expired token"),
-    cwd,
   }, (args) => workflow.prepareReportPublish(args), { readOnly: true, render: prepareText });
 
   tool("dingtalk_reports_publish", "Publish one prepared report with DingTalk's blank-log template and remind the user to rename it manually. Reports cannot be updated or unsent through the available MCP.", {

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadConfig } from "./config.js";
+import { loadConfig, SETUP_HINT } from "./config.js";
 import {
   findLocalOnlyReferences,
   firstHeading,
@@ -117,22 +117,30 @@ function effectiveRecipients(config, type, explicit) {
 }
 
 export class DingTalkWorkflow {
-  constructor({ upstream, confirmations }) {
+  constructor({ upstream, confirmations, env = process.env }) {
     this.upstream = upstream;
     this.confirmations = confirmations;
+    this.env = env;
   }
 
-  config(cwd) { return loadConfig({ cwd }); }
+  config() { return loadConfig({ env: this.env }); }
 
-  async pullDocument({ source, output_path, binding = "reference", cwd = process.cwd() }) {
+  // A default destination needs a configured root; an explicit output_path does not.
+  defaultDestination(root, title, output_path) {
+    if (output_path) return path.resolve(output_path);
+    if (!root) throw new Error(`No output_path given and the destination directory is not configured. ${SETUP_HINT}`);
+    return path.resolve(path.join(monthPath(root), `${slugify(title)}.md`));
+  }
+
+  async pullDocument({ source, output_path, binding = "reference" }) {
     if (!['reference', 'managed'].includes(binding)) throw new Error("binding must be reference or managed");
-    const { config } = this.config(cwd);
+    const { config } = this.config();
     const infoValue = await this.upstream.call("docs", "get_document_info", { nodeId: source });
     const info = remoteDocument(infoValue);
     const contentValue = await this.upstream.call("docs", "get_document_content", { nodeId: source, format: "markdown" });
     const body = remoteMarkdown(contentValue);
     const title = info.title || firstHeading(body);
-    const file = path.resolve(output_path || path.join(monthPath(config.paths.documents_root), `${slugify(title)}.md`));
+    const file = this.defaultDestination(config.paths.documents_root, title, output_path);
     if (fs.existsSync(file)) throw new Error(`Refusing to overwrite existing local file: ${file}`);
     const nodeId = info.nodeId || source;
     const data = { dingtalk: {
@@ -144,10 +152,10 @@ export class DingTalkWorkflow {
   }
 
   async prepareDocumentPush({
-    file_path, workspace_id, folder_id, rename_remote = false, confirmed_fingerprint, cwd = process.cwd(),
+    file_path, workspace_id, folder_id, rename_remote = false, confirmed_fingerprint,
   }) {
     const file = path.resolve(file_path);
-    const { config } = this.config(cwd);
+    const { config } = this.config();
     const doc = readMarkdown(file);
     const meta = documentMeta(doc.data);
     const summary = {
@@ -244,9 +252,9 @@ export class DingTalkWorkflow {
     return { file: path.resolve(file_path), metadata: documentMeta(doc.data), local_content_sha256: sha256(doc.body) };
   }
 
-  async prepareReportPublish({ file_path, recipients, confirmed_fingerprint, cwd = process.cwd() }) {
+  async prepareReportPublish({ file_path, recipients, confirmed_fingerprint }) {
     const file = path.resolve(file_path);
-    const { config } = this.config(cwd);
+    const { config } = this.config();
     const doc = readMarkdown(file);
     const type = inferReportType(file, doc.data, doc.body);
     const mapping = REPORTS[type];
@@ -347,12 +355,12 @@ export class DingTalkWorkflow {
     };
   }
 
-  async pullReport({ report_id, output_path, cwd = process.cwd() }) {
-    const { config } = this.config(cwd);
+  async pullReport({ report_id, output_path }) {
+    const { config } = this.config();
     const value = await this.upstream.call("log", "get_report_entry_details", { report_id });
     const body = remoteMarkdown(value);
     const title = String(findValue(value, ["title", "reportName", "report_name"]) || `DingTalk report ${report_id}`);
-    const file = path.resolve(output_path || path.join(monthPath(config.paths.reports_root), `${slugify(title)}.md`));
+    const file = this.defaultDestination(config.paths.reports_root, title, output_path);
     if (fs.existsSync(file)) throw new Error(`Refusing to overwrite existing local file: ${file}`);
     const data = { dingtalk: {
       kind: "report_archive", binding: "reference", status: "archived", report_id: String(report_id),

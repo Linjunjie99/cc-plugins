@@ -7,9 +7,12 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import test from "node:test";
 import { createDingTalkServer } from "../src/mcp.js";
 
+// Never read the real ~/.config/dingtalk/config.toml from tests.
+const env = { DINGTALK_CONFIG: path.join(os.tmpdir(), "dingtalk-mcp-test-absent.toml") };
+
 test("wrapped MCP exposes business tools but no setup tools", async () => {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const server = createDingTalkServer({ upstream: { async call() {} } });
+  const server = createDingTalkServer({ env, upstream: { async call() {} } });
   const client = new Client({ name: "test-client", version: "1.0.0" });
 
   await server.connect(serverTransport);
@@ -41,14 +44,14 @@ test("report preparation returns a readable confirmation and structured private 
     },
   };
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const server = createDingTalkServer({ upstream });
+  const server = createDingTalkServer({ env, upstream });
   const client = new Client({ name: "test-client", version: "1.0.0" });
   await server.connect(serverTransport);
   await client.connect(clientTransport);
 
   const prepared = await client.callTool({
     name: "dingtalk_reports_prepare_publish",
-    arguments: { file_path: file, recipients: ["10001"], cwd: root },
+    arguments: { file_path: file, recipients: ["10001"] },
   });
   const text = prepared.content.find(({ type }) => type === "text")?.text || "";
 
@@ -67,14 +70,14 @@ test("document preparation returns the fixed synchronization confirmation", asyn
   const file = path.join(root, "proposal.md");
   fs.writeFileSync(file, "# 项目方案\n\n正文。\n");
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const server = createDingTalkServer({ upstream: { async call() {} } });
+  const server = createDingTalkServer({ env, upstream: { async call() {} } });
   const client = new Client({ name: "test-client", version: "1.0.0" });
   await server.connect(serverTransport);
   await client.connect(clientTransport);
 
   const prepared = await client.callTool({
     name: "dingtalk_docs_prepare_push",
-    arguments: { file_path: file, workspace_id: "workspace-1", folder_id: "folder-1", cwd: root },
+    arguments: { file_path: file, workspace_id: "workspace-1", folder_id: "folder-1" },
   });
   const text = prepared.content.find(({ type }) => type === "text")?.text || "";
 

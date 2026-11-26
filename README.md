@@ -71,7 +71,7 @@ What does need a decision is the context files the plugins write:
 | Global guidance | `~/.claude/CLAUDE.md` | `~/.codex/AGENTS.md` | Each harness owns its own file. Both may carry an `engineering-governance` managed section. Neither skill writes the other's file. |
 | Project context | `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` holds all shared facts. `CLAUDE.md` is `@AGENTS.md` plus optional Claude Code notes. |
 | Active plans | `.claude/plans` | `.codex/plans` | Both are symlinks to `.agents/plans/`. |
-| DingTalk config | `~/.claude/dingtalk.toml` | `~/.codex/dingtalk.toml` | Each harness owns its own file. The first Claude Code setup imports the Codex file read-only. Gateway URL variables and the documents/reports directories are shared. |
+| DingTalk config | `~/.config/dingtalk/config.toml` | same file | One file per machine, shared by both plugins and written only by their setup scripts. Neither imports from the other. Gateway URLs stay in environment variables. |
 
 `engineering-governance` implements this. Its `maintain-project-context` skill
 keeps project facts in `AGENTS.md`, reduces `CLAUDE.md` to an import, and

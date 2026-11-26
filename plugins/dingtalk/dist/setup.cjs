@@ -27,6 +27,7 @@ var import_node_util = require("node:util");
 
 // src/setup.js
 var import_node_fs2 = __toESM(require("node:fs"), 1);
+var import_node_os2 = __toESM(require("node:os"), 1);
 var import_node_path2 = __toESM(require("node:path"), 1);
 
 // node_modules/smol-toml/dist/date.js
@@ -857,11 +858,7 @@ var import_node_path = __toESM(require("node:path"), 1);
 var DEFAULTS = {
   version: 1,
   timezone: "Asia/Shanghai",
-  paths: {
-    company_root: "/root/workspace/10_company",
-    documents_root: "/root/workspace/10_company/documents",
-    reports_root: "/root/workspace/10_company/reporting"
-  },
+  paths: { documents_root: "", reports_root: "" },
   documents: { target: { workspace_id: "", folder_id: "" } },
   reports: {
     require_confirmation: true,
@@ -869,14 +866,18 @@ var DEFAULTS = {
     recipients: { common: [], daily: [], weekly: [], monthly: [], annual: [] }
   }
 };
-function claudeHome(env = process.env) {
-  return env.CLAUDE_CONFIG_DIR || import_node_path.default.join(import_node_os.default.homedir(), ".claude");
+function configPath(env = process.env) {
+  return env.DINGTALK_CONFIG || import_node_path.default.join(import_node_os.default.homedir(), ".config", "dingtalk", "config.toml");
 }
-function userConfigPath(env = process.env) {
-  return import_node_path.default.join(claudeHome(env), "dingtalk.toml");
+function expandHome(value) {
+  if (value === "~") return import_node_os.default.homedir();
+  if (value?.startsWith("~/")) return import_node_path.default.join(import_node_os.default.homedir(), value.slice(2));
+  return value;
 }
-function codexUserConfigPath(env = process.env) {
-  return import_node_path.default.join(env.CODEX_HOME || import_node_path.default.join(import_node_os.default.homedir(), ".codex"), "dingtalk.toml");
+function portablePath(value) {
+  const absolute = import_node_path.default.resolve(expandHome(value));
+  const home = import_node_os.default.homedir();
+  return absolute === home || absolute.startsWith(home + import_node_path.default.sep) ? `~${absolute.slice(home.length)}` : absolute;
 }
 function isObject(value) {
   return value && typeof value === "object" && !Array.isArray(value);
@@ -888,29 +889,18 @@ function mergeConfig(base, overlay) {
   }
   return result2;
 }
-function readToml(file) {
-  if (!import_node_fs.default.existsSync(file)) return {};
-  return parse(import_node_fs.default.readFileSync(file, "utf8"));
+function readConfigFile(file) {
+  return import_node_fs.default.existsSync(file) ? parse(import_node_fs.default.readFileSync(file, "utf8")) : null;
 }
-function findProjectConfig(startDir) {
-  let current = import_node_path.default.resolve(startDir);
-  while (true) {
-    const candidate = import_node_path.default.join(current, ".claude", "dingtalk.toml");
-    if (import_node_fs.default.existsSync(candidate)) return candidate;
-    if (import_node_fs.default.existsSync(import_node_path.default.join(current, ".git"))) return null;
-    const parent = import_node_path.default.dirname(current);
-    if (parent === current) return null;
-    current = parent;
-  }
-}
-function loadConfig({ cwd = process.cwd(), explicit = {} } = {}) {
-  const userFile = userConfigPath();
-  const projectFile = findProjectConfig(cwd);
-  let config = mergeConfig(DEFAULTS, readToml(userFile));
-  if (projectFile && projectFile !== userFile) config = mergeConfig(config, readToml(projectFile));
-  config = mergeConfig(config, explicit);
-  if (config.version !== 1) throw new Error(`Unsupported dingtalk.toml version: ${config.version}`);
-  return { config, sources: { user: userFile, project: projectFile } };
+function loadConfig({ env = process.env } = {}) {
+  const file = configPath(env);
+  const raw = readConfigFile(file);
+  const config = mergeConfig(DEFAULTS, raw || {});
+  if (config.version !== 1) throw new Error(`Unsupported DingTalk config version ${config.version} in ${file}`);
+  config.paths.documents_root = expandHome(config.paths.documents_root);
+  config.paths.reports_root = expandHome(config.paths.reports_root);
+  const configured = Boolean(raw && config.paths.documents_root && config.paths.reports_root);
+  return { config, file, configured };
 }
 
 // src/environment.js
@@ -926,16 +916,11 @@ function loadMcpUrls(env = process.env) {
 }
 
 // src/setup.js
-function readToml2(file) {
-  return import_node_fs2.default.existsSync(file) ? parse(import_node_fs2.default.readFileSync(file, "utf8")) : {};
-}
-function configTarget(projectDir, env = process.env) {
-  return projectDir ? import_node_path2.default.join(import_node_path2.default.resolve(projectDir), ".claude", "dingtalk.toml") : userConfigPath(env);
-}
-function importSource(projectDir, target, env) {
-  const codexFile = codexUserConfigPath(env);
-  return !projectDir && !import_node_fs2.default.existsSync(target) && import_node_fs2.default.existsSync(codexFile) ? codexFile : null;
-}
+var REPORT_TYPES = ["daily", "weekly", "monthly", "annual"];
+var LEGACY_FILES = [
+  import_node_path2.default.join(".claude", "dingtalk.toml"),
+  import_node_path2.default.join(".codex", "dingtalk.toml")
+];
 function writeConfig(file, config) {
   import_node_fs2.default.mkdirSync(import_node_path2.default.dirname(file), { recursive: true });
   import_node_fs2.default.writeFileSync(file, stringify(config), { mode: 384 });
@@ -966,74 +951,70 @@ function writeReadmeIfMissing(root, content) {
   const file = import_node_path2.default.join(root, "README.md");
   if (!import_node_fs2.default.existsSync(file)) import_node_fs2.default.writeFileSync(file, content, { mode: 384 });
 }
-function initialize({ project_dir, company_root, documents_root, reports_root, env = process.env } = {}) {
-  const target = configTarget(project_dir, env);
-  const imported = importSource(project_dir, target, env);
-  const existing = readToml2(imported || target);
-  const seeded = imported ? mergeConfig(DEFAULTS, existing).paths : DEFAULTS.paths;
-  const company = import_node_path2.default.resolve(company_root || seeded.company_root);
-  const docs = import_node_path2.default.resolve(documents_root || (company_root ? import_node_path2.default.join(company, "documents") : seeded.documents_root));
-  const reports = import_node_path2.default.resolve(reports_root || (company_root ? import_node_path2.default.join(company, "reporting") : seeded.reports_root));
-  const overlay = {
-    version: 1,
-    paths: { company_root: company, documents_root: docs, reports_root: reports }
-  };
-  const config = mergeConfig(mergeConfig(DEFAULTS, existing), overlay);
-  writeConfig(target, config);
-  import_node_fs2.default.mkdirSync(docs, { recursive: true });
-  for (const dir of ["daily", "weekly", "monthly", "annual", "imported"]) {
-    import_node_fs2.default.mkdirSync(import_node_path2.default.join(reports, dir), { recursive: true });
+function recipientIds(config) {
+  return [...new Set(Object.values(config.reports?.recipients || {}).flat().filter(Boolean).map(String))];
+}
+function initialize({ documents_root, reports_root, env = process.env } = {}) {
+  const file = configPath(env);
+  const existing = readConfigFile(file) || {};
+  const docsValue = documents_root || existing.paths?.documents_root;
+  const reportsValue = reports_root || existing.paths?.reports_root;
+  if (!docsValue || !reportsValue) {
+    throw new Error("documents_root and reports_root are required: ask the user where DingTalk documents and reports should live, then pass --documents-root and --reports-root.");
   }
+  const paths = { documents_root: portablePath(docsValue), reports_root: portablePath(reportsValue) };
+  const config = mergeConfig(mergeConfig(DEFAULTS, existing), { version: 1, paths });
+  writeConfig(file, config);
+  const docs = expandHome(paths.documents_root);
+  const reports = expandHome(paths.reports_root);
+  import_node_fs2.default.mkdirSync(docs, { recursive: true });
+  for (const dir of [...REPORT_TYPES, "imported"]) import_node_fs2.default.mkdirSync(import_node_path2.default.join(reports, dir), { recursive: true });
   writeReadmeIfMissing(docs, DOCUMENTS_README);
   writeReadmeIfMissing(reports, REPORTS_README);
   return {
-    config_file: target,
-    imported_from: imported,
+    config_file: file,
     documents_root: docs,
     reports_root: reports,
-    root_readmes: {
-      documents: import_node_path2.default.join(docs, "README.md"),
-      reports: import_node_path2.default.join(reports, "README.md")
-    },
-    default_recipients: [...new Set(Object.values(config.reports.recipients || {}).flat().filter(Boolean).map(String))]
+    root_readmes: { documents: import_node_path2.default.join(docs, "README.md"), reports: import_node_path2.default.join(reports, "README.md") },
+    default_recipients: recipientIds(config)
   };
 }
-function setRecipients({ user_ids, report_types = ["daily", "weekly", "monthly", "annual"], project_dir, env = process.env } = {}) {
-  const allowed = /* @__PURE__ */ new Set(["daily", "weekly", "monthly", "annual"]);
+function setRecipients({ user_ids, report_types = REPORT_TYPES, env = process.env } = {}) {
   if (!user_ids?.length) throw new Error("At least one verified organization userId is required");
-  if (!report_types.length || report_types.some((type) => !allowed.has(type))) throw new Error("report_types must contain daily, weekly, monthly, or annual");
-  const target = configTarget(project_dir, env);
-  const config = mergeConfig(DEFAULTS, readToml2(target));
+  if (!report_types.length || report_types.some((type) => !REPORT_TYPES.includes(type))) {
+    throw new Error("report_types must contain daily, weekly, monthly, or annual");
+  }
+  const file = configPath(env);
+  const existing = readConfigFile(file);
+  if (!existing) throw new Error(`${file} does not exist. Run initialize first.`);
+  const config = mergeConfig(DEFAULTS, existing);
   const ids = [...new Set(user_ids.map(String))];
   for (const type of report_types) config.reports.recipients[type] = ids;
-  writeConfig(target, config);
-  return { config_file: target, report_types, recipient_user_ids: ids };
+  writeConfig(file, config);
+  return { config_file: file, report_types, recipient_user_ids: ids };
 }
-function setupStatus({ cwd = process.cwd(), env = process.env } = {}) {
+function setupStatus({ env = process.env } = {}) {
   const urls = loadMcpUrls(env);
-  const userConfig = userConfigPath(env);
-  const { config, sources } = loadConfig({ cwd });
-  const recipientIds = new Set(Object.values(config.reports.recipients || {}).flat().filter(Boolean).map(String));
-  const documentsReadme = import_node_path2.default.join(config.paths.documents_root, "README.md");
-  const reportsReadme = import_node_path2.default.join(config.paths.reports_root, "README.md");
+  const { config, file, configured } = loadConfig({ env });
+  const { documents_root: docs, reports_root: reports } = config.paths;
+  const exists = (p) => Boolean(p) && import_node_fs2.default.existsSync(p);
   return {
-    user_config: userConfig,
-    user_config_exists: import_node_fs2.default.existsSync(userConfig),
-    codex_user_config_exists: import_node_fs2.default.existsSync(codexUserConfigPath(env)),
-    mcp: Object.fromEntries(Object.entries(urls).map(([kind, url]) => [kind, { configured: Boolean(url), source: url ? "environment" : "missing" }])),
+    config_file: file,
+    config_exists: import_node_fs2.default.existsSync(file),
+    configured,
+    mcp: Object.fromEntries(Object.entries(urls).map(([kind, url]) => [kind, { configured: Boolean(url) }])),
     paths: {
-      documents_root: config.paths.documents_root,
-      documents_root_exists: import_node_fs2.default.existsSync(config.paths.documents_root),
-      reports_root: config.paths.reports_root,
-      reports_root_exists: import_node_fs2.default.existsSync(config.paths.reports_root)
+      documents_root: docs || null,
+      documents_root_exists: exists(docs),
+      reports_root: reports || null,
+      reports_root_exists: exists(reports)
     },
     root_readmes: {
-      documents: import_node_fs2.default.existsSync(documentsReadme),
-      reports: import_node_fs2.default.existsSync(reportsReadme)
+      documents: exists(docs) && import_node_fs2.default.existsSync(import_node_path2.default.join(docs, "README.md")),
+      reports: exists(reports) && import_node_fs2.default.existsSync(import_node_path2.default.join(reports, "README.md"))
     },
-    default_report_recipient_count: recipientIds.size,
-    effective_config: sources.project || sources.user,
-    cwd: import_node_path2.default.resolve(cwd)
+    default_report_recipient_count: recipientIds(config).length,
+    legacy_files: LEGACY_FILES.map((rel) => import_node_path2.default.join(import_node_os2.default.homedir(), rel)).filter((p) => import_node_fs2.default.existsSync(p))
   };
 }
 
@@ -1041,32 +1022,26 @@ function setupStatus({ cwd = process.cwd(), env = process.env } = {}) {
 var { positionals, values } = (0, import_node_util.parseArgs)({
   allowPositionals: true,
   options: {
-    "project-dir": { type: "string" },
-    "company-root": { type: "string" },
     "documents-root": { type: "string" },
     "reports-root": { type: "string" },
     "user-id": { type: "string", multiple: true },
     "report-type": { type: "string", multiple: true }
   }
 });
-var command = positionals[0] || "initialize";
+var command = positionals[0] || "status";
 var result;
-if (command === "status") {
-  result = setupStatus({ cwd: process.cwd() });
-} else if (command === "initialize") {
-  result = initialize({
-    project_dir: values["project-dir"],
-    company_root: values["company-root"],
-    documents_root: values["documents-root"],
-    reports_root: values["reports-root"]
-  });
-} else if (command === "set-recipients") {
-  result = setRecipients({
-    project_dir: values["project-dir"],
-    user_ids: values["user-id"],
-    report_types: values["report-type"]
-  });
-} else {
-  throw new Error(`Unknown command: ${command}. Use status, initialize, or set-recipients.`);
+try {
+  if (command === "status") {
+    result = setupStatus();
+  } else if (command === "initialize") {
+    result = initialize({ documents_root: values["documents-root"], reports_root: values["reports-root"] });
+  } else if (command === "set-recipients") {
+    result = setRecipients({ user_ids: values["user-id"], report_types: values["report-type"] });
+  } else {
+    throw new Error(`Unknown command: ${command}. Use status, initialize, or set-recipients.`);
+  }
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
 }
 console.log(JSON.stringify(result, null, 2));

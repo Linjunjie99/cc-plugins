@@ -29317,11 +29317,7 @@ function parse3(toml, { maxDepth = 1e3, integersAsBigInt } = {}) {
 var DEFAULTS = {
   version: 1,
   timezone: "Asia/Shanghai",
-  paths: {
-    company_root: "/root/workspace/10_company",
-    documents_root: "/root/workspace/10_company/documents",
-    reports_root: "/root/workspace/10_company/reporting"
-  },
+  paths: { documents_root: "", reports_root: "" },
   documents: { target: { workspace_id: "", folder_id: "" } },
   reports: {
     require_confirmation: true,
@@ -29329,11 +29325,14 @@ var DEFAULTS = {
     recipients: { common: [], daily: [], weekly: [], monthly: [], annual: [] }
   }
 };
-function claudeHome(env = process.env) {
-  return env.CLAUDE_CONFIG_DIR || import_node_path.default.join(import_node_os.default.homedir(), ".claude");
+var SETUP_HINT = "Run the dingtalk-setup skill to configure DingTalk on this machine.";
+function configPath(env = process.env) {
+  return env.DINGTALK_CONFIG || import_node_path.default.join(import_node_os.default.homedir(), ".config", "dingtalk", "config.toml");
 }
-function userConfigPath(env = process.env) {
-  return import_node_path.default.join(claudeHome(env), "dingtalk.toml");
+function expandHome(value) {
+  if (value === "~") return import_node_os.default.homedir();
+  if (value?.startsWith("~/")) return import_node_path.default.join(import_node_os.default.homedir(), value.slice(2));
+  return value;
 }
 function isObject2(value) {
   return value && typeof value === "object" && !Array.isArray(value);
@@ -29345,29 +29344,18 @@ function mergeConfig(base, overlay) {
   }
   return result2;
 }
-function readToml(file) {
-  if (!import_node_fs.default.existsSync(file)) return {};
-  return parse3(import_node_fs.default.readFileSync(file, "utf8"));
+function readConfigFile(file) {
+  return import_node_fs.default.existsSync(file) ? parse3(import_node_fs.default.readFileSync(file, "utf8")) : null;
 }
-function findProjectConfig(startDir) {
-  let current = import_node_path.default.resolve(startDir);
-  while (true) {
-    const candidate = import_node_path.default.join(current, ".claude", "dingtalk.toml");
-    if (import_node_fs.default.existsSync(candidate)) return candidate;
-    if (import_node_fs.default.existsSync(import_node_path.default.join(current, ".git"))) return null;
-    const parent = import_node_path.default.dirname(current);
-    if (parent === current) return null;
-    current = parent;
-  }
-}
-function loadConfig({ cwd = process.cwd(), explicit = {} } = {}) {
-  const userFile = userConfigPath();
-  const projectFile = findProjectConfig(cwd);
-  let config2 = mergeConfig(DEFAULTS, readToml(userFile));
-  if (projectFile && projectFile !== userFile) config2 = mergeConfig(config2, readToml(projectFile));
-  config2 = mergeConfig(config2, explicit);
-  if (config2.version !== 1) throw new Error(`Unsupported dingtalk.toml version: ${config2.version}`);
-  return { config: config2, sources: { user: userFile, project: projectFile } };
+function loadConfig({ env = process.env } = {}) {
+  const file = configPath(env);
+  const raw = readConfigFile(file);
+  const config2 = mergeConfig(DEFAULTS, raw || {});
+  if (config2.version !== 1) throw new Error(`Unsupported DingTalk config version ${config2.version} in ${file}`);
+  config2.paths.documents_root = expandHome(config2.paths.documents_root);
+  config2.paths.reports_root = expandHome(config2.paths.reports_root);
+  const configured = Boolean(raw && config2.paths.documents_root && config2.paths.reports_root);
+  return { config: config2, file, configured };
 }
 
 // src/markdown.js
@@ -31742,22 +31730,29 @@ function effectiveRecipients(config2, type, explicit) {
   return unique([...configured.common || [], ...configured[type] || []]);
 }
 var DingTalkWorkflow = class {
-  constructor({ upstream: upstream2, confirmations }) {
+  constructor({ upstream: upstream2, confirmations, env = process.env }) {
     this.upstream = upstream2;
     this.confirmations = confirmations;
+    this.env = env;
   }
-  config(cwd) {
-    return loadConfig({ cwd });
+  config() {
+    return loadConfig({ env: this.env });
   }
-  async pullDocument({ source, output_path, binding = "reference", cwd = process.cwd() }) {
+  // A default destination needs a configured root; an explicit output_path does not.
+  defaultDestination(root, title, output_path) {
+    if (output_path) return import_node_path3.default.resolve(output_path);
+    if (!root) throw new Error(`No output_path given and the destination directory is not configured. ${SETUP_HINT}`);
+    return import_node_path3.default.resolve(import_node_path3.default.join(monthPath(root), `${slugify(title)}.md`));
+  }
+  async pullDocument({ source, output_path, binding = "reference" }) {
     if (!["reference", "managed"].includes(binding)) throw new Error("binding must be reference or managed");
-    const { config: config2 } = this.config(cwd);
+    const { config: config2 } = this.config();
     const infoValue = await this.upstream.call("docs", "get_document_info", { nodeId: source });
     const info = remoteDocument(infoValue);
     const contentValue = await this.upstream.call("docs", "get_document_content", { nodeId: source, format: "markdown" });
     const body = remoteMarkdown(contentValue);
     const title = info.title || firstHeading(body);
-    const file = import_node_path3.default.resolve(output_path || import_node_path3.default.join(monthPath(config2.paths.documents_root), `${slugify(title)}.md`));
+    const file = this.defaultDestination(config2.paths.documents_root, title, output_path);
     if (import_node_fs3.default.existsSync(file)) throw new Error(`Refusing to overwrite existing local file: ${file}`);
     const nodeId = info.nodeId || source;
     const data = { dingtalk: {
@@ -31777,11 +31772,10 @@ var DingTalkWorkflow = class {
     workspace_id,
     folder_id,
     rename_remote = false,
-    confirmed_fingerprint,
-    cwd = process.cwd()
+    confirmed_fingerprint
   }) {
     const file = import_node_path3.default.resolve(file_path);
-    const { config: config2 } = this.config(cwd);
+    const { config: config2 } = this.config();
     const doc = readMarkdown(file);
     const meta = documentMeta(doc.data);
     const summary = {
@@ -31901,9 +31895,9 @@ var DingTalkWorkflow = class {
     const doc = readMarkdown(import_node_path3.default.resolve(file_path));
     return { file: import_node_path3.default.resolve(file_path), metadata: documentMeta(doc.data), local_content_sha256: sha256(doc.body) };
   }
-  async prepareReportPublish({ file_path, recipients, confirmed_fingerprint, cwd = process.cwd() }) {
+  async prepareReportPublish({ file_path, recipients, confirmed_fingerprint }) {
     const file = import_node_path3.default.resolve(file_path);
-    const { config: config2 } = this.config(cwd);
+    const { config: config2 } = this.config();
     const doc = readMarkdown(file);
     const type = inferReportType(file, doc.data, doc.body);
     const mapping = REPORTS[type];
@@ -32049,12 +32043,12 @@ var DingTalkWorkflow = class {
       manual_rename_instruction: manualRenameInstruction(payload.mapping)
     };
   }
-  async pullReport({ report_id, output_path, cwd = process.cwd() }) {
-    const { config: config2 } = this.config(cwd);
+  async pullReport({ report_id, output_path }) {
+    const { config: config2 } = this.config();
     const value = await this.upstream.call("log", "get_report_entry_details", { report_id });
     const body = remoteMarkdown(value);
     const title = String(findValue(value, ["title", "reportName", "report_name"]) || `DingTalk report ${report_id}`);
-    const file = import_node_path3.default.resolve(output_path || import_node_path3.default.join(monthPath(config2.paths.reports_root), `${slugify(title)}.md`));
+    const file = this.defaultDestination(config2.paths.reports_root, title, output_path);
     if (import_node_fs3.default.existsSync(file)) throw new Error(`Refusing to overwrite existing local file: ${file}`);
     const data = { dingtalk: {
       kind: "report_archive",
@@ -32164,9 +32158,9 @@ function result(value, render) {
   const text = render ? render(value) : JSON.stringify(value, null, 2);
   return { content: [{ type: "text", text }], structuredContent: value };
 }
-function createDingTalkServer({ upstream: upstream2, confirmations = new ConfirmationStore() }) {
-  const workflow = new DingTalkWorkflow({ upstream: upstream2, confirmations });
-  const server = new McpServer({ name: "dingtalk", version: "0.1.0" });
+function createDingTalkServer({ upstream: upstream2, confirmations = new ConfirmationStore(), env = process.env }) {
+  const workflow = new DingTalkWorkflow({ upstream: upstream2, confirmations, env });
+  const server = new McpServer({ name: "dingtalk", version: "0.2.0" });
   function tool(name, description, inputSchema, handler, { readOnly = false, destructive = false, render } = {}) {
     server.registerTool(name, {
       description,
@@ -32174,21 +32168,18 @@ function createDingTalkServer({ upstream: upstream2, confirmations = new Confirm
       annotations: { readOnlyHint: readOnly, destructiveHint: destructive, openWorldHint: true }
     }, async (args) => result(await handler(args), render));
   }
-  const cwd = external_exports.string().optional().describe("Working directory used to discover .claude/dingtalk.toml");
   const filePath = external_exports.string().describe("Absolute or current-directory-relative local Markdown path");
   tool("dingtalk_docs_pull", "Pull a DingTalk online document into a new local Markdown file. Pulled files are reference-only unless binding=managed is explicitly chosen.", {
     source: external_exports.string().describe("DingTalk document nodeId or URL"),
     output_path: external_exports.string().optional(),
-    binding: external_exports.enum(["reference", "managed"]).default("reference"),
-    cwd
+    binding: external_exports.enum(["reference", "managed"]).default("reference")
   }, (args) => workflow.pullDocument(args));
   tool("dingtalk_docs_prepare_push", "Review a completed local Markdown draft after creation or revision. Resolve and validate its DingTalk create/update target, then return the complete user-facing sync summary and a short-lived confirmation token. This never writes to DingTalk.", {
     file_path: filePath,
     workspace_id: external_exports.string().optional(),
     folder_id: external_exports.string().optional(),
     rename_remote: external_exports.boolean().default(false),
-    confirmed_fingerprint: external_exports.string().optional().describe("Fingerprint of a summary the user already confirmed; used only to refresh an expired token"),
-    cwd
+    confirmed_fingerprint: external_exports.string().optional().describe("Fingerprint of a summary the user already confirmed; used only to refresh an expired token")
   }, (args) => workflow.prepareDocumentPush(args), { readOnly: true, render: prepareText });
   tool("dingtalk_docs_push", "Create or update the prepared DingTalk document and atomically record its binding in local front matter.", {
     file_path: filePath,
@@ -32203,14 +32194,12 @@ function createDingTalkServer({ upstream: upstream2, confirmations = new Confirm
   }, (args) => workflow.documentStatus(args), { readOnly: true });
   tool("dingtalk_reports_pull", "Pull a DingTalk report into a local read-only archive file for reference and summarization.", {
     report_id: external_exports.string(),
-    output_path: external_exports.string().optional(),
-    cwd
+    output_path: external_exports.string().optional()
   }, (args) => workflow.pullReport(args));
   tool("dingtalk_reports_prepare_publish", "Review a completed local report after creation or revision. Resolve and verify its effective recipients and DingTalk blank-log template, then return the complete user-facing publication summary and a short-lived confirmation token. This never sends a report.", {
     file_path: filePath,
     recipients: external_exports.array(external_exports.string()).optional(),
-    confirmed_fingerprint: external_exports.string().optional().describe("Fingerprint of a summary the user already confirmed; used only to refresh an expired token"),
-    cwd
+    confirmed_fingerprint: external_exports.string().optional().describe("Fingerprint of a summary the user already confirmed; used only to refresh an expired token")
   }, (args) => workflow.prepareReportPublish(args), { readOnly: true, render: prepareText });
   tool("dingtalk_reports_publish", "Publish one prepared report with DingTalk's blank-log template and remind the user to rename it manually. Reports cannot be updated or unsent through the available MCP.", {
     file_path: filePath,
